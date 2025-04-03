@@ -157,10 +157,10 @@
     ],
     "action": [
       {
-        "t": [
-          "exchange",
-          "click_and_teleport"
-        ],
+        "t": "exchange"
+      },
+      {
+        "t": "click_and_teleport",
         "p": [
           718,
           345
@@ -261,10 +261,10 @@
         "desc": "2 right"
       },
       {
-        "t": [
-          "exchange_and_click",
-          "teleport"
-        ],
+        "t": "exchange"
+      },
+      {
+        "t": "click_and_teleport",
         "p": [
           770,
           417

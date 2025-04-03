@@ -1,17 +1,18 @@
+import json
 import os
-import time
+
 from core import color, picture, image
 from module.ExploreTasks.TaskUtils import execute_grid_task
-import json
 
 
 def implement(self):
-    self.logger.info("START pushing main story")
+    self.logger.info("Pushing Main Story.")
     self.main_story_stage_data = get_stage_data()
-    self.quick_method_to_main_page()
+    self.to_main_page()
     to_main_story(self, True)
     push_episode_list = process_regions(self, self.config.main_story_regions)
     if not push_episode_list:
+        self.logger.warning("Use Default Push Episode List.")
         default_list = self.static_config.main_story_available_episodes
         push_episode_list = default_list[self.server]
     for i in range(0, len(push_episode_list)):
@@ -47,14 +48,14 @@ def get_acceleration(self) -> int:
          3 - Third acceleration phase
          -1 - Unable to determine acceleration phase
     """
-    if color.is_rgb_in_range(self, 1180, 621, 200, 255, 200, 255, 200, 255) and \
-        color.is_rgb_in_range(self, 1250, 621, 200, 255, 200, 255, 200, 255):
+    if color.rgb_in_range(self, 1180, 621, 200, 255, 200, 255, 200, 255) and \
+        color.rgb_in_range(self, 1250, 621, 200, 255, 200, 255, 200, 255):
         return 1
-    elif color.is_rgb_in_range(self, 1250, 621, 100, 150, 200, 255, 200, 255) and \
-        color.is_rgb_in_range(self, 1180, 621, 100, 155, 200, 255, 200, 255):
+    elif color.rgb_in_range(self, 1250, 621, 100, 150, 200, 255, 200, 255) and \
+        color.rgb_in_range(self, 1180, 621, 100, 155, 200, 255, 200, 255):
         return 2
-    elif color.is_rgb_in_range(self, 1250, 621, 210, 255, 180, 240, 0, 80) and \
-        color.is_rgb_in_range(self, 1180, 621, 200, 255, 180, 240, 0, 80):
+    elif color.rgb_in_range(self, 1250, 621, 210, 255, 180, 240, 0, 80) and \
+        color.rgb_in_range(self, 1180, 621, 200, 255, 180, 240, 0, 80):
         return 3
     return -1  # Unable to determine acceleration phase
 
@@ -75,11 +76,11 @@ def get_auto(self) -> int:
          1 - Auto mode is on
          -1 - Unable to determine auto mode status
     """
-    if color.is_rgb_in_range(self, 1250, 677, 180, 255, 180, 255, 200, 255) and \
-        color.is_rgb_in_range(self, 1170, 677, 180, 255, 180, 255, 200, 255):
+    if color.rgb_in_range(self, 1250, 677, 180, 255, 180, 255, 200, 255) and \
+        color.rgb_in_range(self, 1170, 677, 180, 255, 180, 255, 200, 255):
         return 0
-    elif color.is_rgb_in_range(self, 1250, 677, 200, 255, 180, 255, 0, 80) and \
-        color.is_rgb_in_range(self, 1170, 677, 200, 255, 180, 255, 0, 80):
+    elif color.rgb_in_range(self, 1250, 677, 200, 255, 180, 255, 0, 80) and \
+        color.rgb_in_range(self, 1170, 677, 200, 255, 180, 255, 0, 80):
         return 1
     return -1
 
@@ -90,15 +91,17 @@ def set_acc_and_auto(self):
     if current_acceleration == -1:
         self.logger.warning("Unable to detect acceleration phase.")
         return
-    self.click(1215, 625, wait_over=True, count=3 - current_acceleration)
+
+    if current_acceleration != 3:
+        self.click(1215, 625, wait_over=True, count=3 - current_acceleration)
     self.logger.info("Current acceleration phase: " + str(get_acceleration(self)))
 
     auto_phase = get_auto(self)
     if auto_phase == -1:
         self.logger.warning("Unable to detect auto status.")
     elif auto_phase == 0:
-        self.click(1215, 677)
-    self.logger.info("Auto mode toggled:" + ("yes" if get_auto(self) else "no"))
+        self.click(1215, 677, wait_over=True)
+    self.logger.info("Auto mode toggled:" + ("yes" if auto_phase else "no"))
 
 
 def enter_battle(self):
@@ -114,18 +117,19 @@ def enter_battle(self):
         "normal_task_fail-confirm"
     ]
     rgb_ends = "fighting_feature"
-    img_pop_ups = {"activity_choose-buff": (644, 570)}
+    img_pop_ups = {
+        "activity_choose-buff": (644, 570)
+    }
     ret = picture.co_detect(self, rgb_ends, None, img_ends, img_possibles, True, pop_ups_img_reactions=img_pop_ups)
     if ret != "fighting_feature":
-        self.logger.info("fight end.")
+        self.logger.info("Fight Ended.")
     return ret
 
 
 def auto_fight(self, need_change_acc=True):
     ret = enter_battle(self)
     if need_change_acc and ret == "fighting_feature":
-        time.sleep(2)
-        self.latest_img_array = self.get_screenshot_array()
+        self.update_screenshot_array()
         set_acc_and_auto(self)
 
 
@@ -136,7 +140,7 @@ def check_episode(self):
     b = position1[1] - k * position1[0]
     for i in range(833, 982):
         y = int(k * i + b)
-        if color.is_rgb_in_range(self, i, y, 250, 255, 177, 200, 0, 80):
+        if color.rgb_in_range(self, i, y, 250, 255, 177, 200, 0, 80):
             return i + 155, y + 17
     return "ALL_CLEAR"
 
@@ -205,11 +209,11 @@ def search_episode(self, possible_list):
 
 
 def check_current_plot_status(self, position):
-    if color.is_rgb_in_range(self, position[0], position[1], 245, 255, 214, 234, 0, 40):
+    if color.rgb_in_range(self, position[0], position[1], 245, 255, 214, 234, 0, 40):
         return "CLEAR"
-    if color.is_rgb_in_range(self, position[0], position[1], 170, 196, 178, 199, 178, 199):
+    if color.rgb_in_range(self, position[0], position[1], 170, 196, 178, 199, 178, 199):
         return "UNLOCK"
-    if color.is_rgb_in_range(self, position[0], position[1], 197, 207, 200, 210, 200, 210):
+    if color.rgb_in_range(self, position[0], position[1], 197, 207, 200, 210, 200, 210):
         return "UNCLEAR"
 
 

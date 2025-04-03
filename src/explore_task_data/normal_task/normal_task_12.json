@@ -209,10 +209,10 @@
         "wait-over": true
       },
       {
-        "t": [
-          "exchange_and_click",
-          "teleport"
-        ],
+        "t": "exchange"
+      },
+      {
+        "t": "click_and_teleport",
         "wait-over": true,
         "p": [
           642,

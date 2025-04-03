@@ -1,9 +1,12 @@
 import time
+import typing
+
 import numpy as np
+
 from core import Baas_thread
 
 
-def wait_loading(self:Baas_thread) -> None:
+def wait_loading(self: Baas_thread) -> None:
     startTime = time.time()
     while (self.flag_run and
            match_rgb_feature(self, "loadingNotWhite") and match_rgb_feature(self, "loadingWhite")):
@@ -14,8 +17,8 @@ def wait_loading(self:Baas_thread) -> None:
     return
 
 
-def is_rgb_in_range(self, x: int, y: int, r_min: int, r_max: int, g_min: int, g_max: int, b_min: int, b_max: int,
-                    check_nearby=False, nearby_range=1):
+def rgb_in_range(self, x: int, y: int, r_min: int, r_max: int, g_min: int, g_max: int, b_min: int, b_max: int,
+                 check_nearby=False, nearby_range=1):
     if r_min <= self.latest_img_array[int(y * self.ratio)][int(x * self.ratio)][2] <= r_max and \
         g_min <= self.latest_img_array[int(y * self.ratio)][int(x * self.ratio)][1] <= g_max and \
         b_min <= self.latest_img_array[int(y * self.ratio)][int(x * self.ratio)][0] <= b_max:
@@ -44,20 +47,27 @@ def match_rgb_feature(self, featureName):
     if featureName not in self.rgb_feature:
         return False
     for i in range(0, len(self.rgb_feature[featureName][0])):
-        if not is_rgb_in_range(self,
-                               self.rgb_feature[featureName][0][i][0],
-                               self.rgb_feature[featureName][0][i][1],
-                               self.rgb_feature[featureName][1][i][0],
-                               self.rgb_feature[featureName][1][i][1],
-                               self.rgb_feature[featureName][1][i][2],
-                               self.rgb_feature[featureName][1][i][3],
-                               self.rgb_feature[featureName][1][i][4],
-                               self.rgb_feature[featureName][1][i][5]):
+        if not rgb_in_range(self,
+                            self.rgb_feature[featureName][0][i][0],
+                            self.rgb_feature[featureName][0][i][1],
+                            self.rgb_feature[featureName][1][i][0],
+                            self.rgb_feature[featureName][1][i][1],
+                            self.rgb_feature[featureName][1][i][2],
+                            self.rgb_feature[featureName][1][i][3],
+                            self.rgb_feature[featureName][1][i][4],
+                            self.rgb_feature[featureName][1][i][5]):
             return False
     return True
 
 
-def match_any_rgb_feature(self, featureName):
+def match_any_rgb_feature(self: Baas_thread, featureList: list[typing.Union[tuple, str]]) -> bool:
+    for rgb_feature in featureList:
+        if match_rgb_feature(self, rgb_feature):
+            return True
+    return False
+
+
+def match_any_rgb_in_feature(self, featureName):
     """
     Check if any RGB values in the specified feature are within the defined range.
 
@@ -70,15 +80,15 @@ def match_any_rgb_feature(self, featureName):
     """
     if featureName in self.rgb_feature:
         for i in range(0, len(self.rgb_feature[featureName][0])):
-            if is_rgb_in_range(self,
-                               self.rgb_feature[featureName][0][i][0],
-                               self.rgb_feature[featureName][0][i][1],
-                               self.rgb_feature[featureName][1][i][0],
-                               self.rgb_feature[featureName][1][i][1],
-                               self.rgb_feature[featureName][1][i][2],
-                               self.rgb_feature[featureName][1][i][3],
-                               self.rgb_feature[featureName][1][i][4],
-                               self.rgb_feature[featureName][1][i][5]):
+            if rgb_in_range(self,
+                            self.rgb_feature[featureName][0][i][0],
+                            self.rgb_feature[featureName][0][i][1],
+                            self.rgb_feature[featureName][1][i][0],
+                            self.rgb_feature[featureName][1][i][1],
+                            self.rgb_feature[featureName][1][i][2],
+                            self.rgb_feature[featureName][1][i][3],
+                            self.rgb_feature[featureName][1][i][4],
+                            self.rgb_feature[featureName][1][i][5]):
                 return True
     return False
 
@@ -89,14 +99,14 @@ def check_sweep_availability(self, is_mainline=False):
             return "no-pass"
         if match_rgb_feature(self, "mainLineTaskSSS"):
             return "sss"
-        if match_any_rgb_feature(self, "mainLineTaskSSS"):
+        if match_any_rgb_in_feature(self, "mainLineTaskSSS"):
             return "pass"
     if not is_mainline:
         if match_rgb_feature(self, "sideTaskNoPass"):
             return "no-pass"
         if match_rgb_feature(self, "sideTaskSSS"):
             return "sss"
-        if match_any_rgb_feature(self, "sideTaskSSS"):
+        if match_any_rgb_in_feature(self, "sideTaskSSS"):
             return "pass"
     return "unknown"
 

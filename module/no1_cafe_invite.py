@@ -1,11 +1,12 @@
+from datetime import datetime, timedelta, timezone
+
+from core.utils import get_nearest_hour
 from module.cafe_reward import invite_girl, to_cafe, get_invitation_ticket_status, interaction_for_cafe_solve_method3, \
     get_invitation_ticket_next_time
-from core.utils import get_nearest_hour
-from datetime import datetime, timedelta, timezone
 
 
 def implement(self):
-    self.quick_method_to_main_page()
+    self.to_main_page()
     to_cafe(self, True)
     if judge_use_invitation_ticket(self, 1):
         invite_girl(self, 1)
@@ -28,7 +29,7 @@ def judge_use_invitation_ticket(self, cafe_no=1):
     self.logger.info(f"Next usable time     :{invitation_ticket_next_usable_time}")
     self.logger.info(f"Nearest expected time:{nearest_time}")
     if invitation_ticket_next_usable_time > nearest_time:
-        if (invitation_ticket_next_usable_time - nearest_time).seconds < 3 * 3600:
+        if (invitation_ticket_next_usable_time - nearest_time).seconds < 9 * 3600:
             if flag:
                 self.logger.info(f"Use Invitation Ticket.")
                 return True
@@ -40,4 +41,4 @@ def judge_use_invitation_ticket(self, cafe_no=1):
 
 def delay_cafe_reward_execution_time(self):
     self.logger.info("Refresh cafe_reward schedule.")
-    self.scheduler.systole("cafe_reward", 0)
+    self.scheduler.systole("cafe_reward", 0, True)

@@ -70,12 +70,15 @@ class Config:
     lesson_relationship_first: bool
     lesson_each_region_object_priority: list
     purchase_lesson_ticket_times: str
-    explore_normal_task_regions: list
-    explore_hard_task_list: str
+    explore_normal_task_list: list
+    explore_hard_task_list: list
     emulatorIsMultiInstance: bool
     emulatorMultiInstanceNumber: int
     multiEmulatorName: str
     manual_boss: bool
+    choose_team_method: str
+    side_team_attribute: list
+    preset_team_attribute: list
     burst1: str
     burst2: str
     pierce1: str
@@ -95,3 +98,9 @@ class Config:
     drill_fight_formation_list: list
     drill_enable_sweep: bool
     new_event_enable_state: str
+    ap: dict
+    creditpoints: dict
+    pyroxene: dict
+    tactical_challenge_coin: dict
+    bounty_coin: dict
+    assetsVisibility: bool

@@ -5,7 +5,7 @@ from module.main_story import auto_fight
 def implement(self):
     if self.server == "JP":
         return True
-    self.quick_method_to_main_page()
+    self.to_main_page()
     to_joint_firing_menu(self)
     state = check_drill_state(self)
     if not state:
@@ -136,12 +136,11 @@ def get_drill_ticket(self):
         "Global": (938, 95, 975, 117),
         "JP": (938, 95, 975, 117),
     }
-    text = self.ocr.get_region_res(self.latest_img_array, region[self.server], 'NUM', self.ratio)
+    text = self.ocr.get_region_res(self, region[self.server], 'en-us', "Drill Ticket Count")
     if text[0] in ['0', '1', '2', '3', '4', '5']:
-        self.logger.info("Drill ticket left [ " + text[0] + " ]")
         return int(text[0])
     else:
-        self.logger.info("Drill ticket num unknown, assume have")
+        self.logger.info("Drill Ticket Num Unknown.Assume Enough.")
         return 3
 
 

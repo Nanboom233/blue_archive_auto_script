@@ -1,14 +1,14 @@
+import importlib
 import time
 
 from core import color, picture, image
 from core.utils import build_possible_string_dict_and_length, most_similar_string
-import importlib
 
 
 def implement(self):
-    self.quick_method_to_main_page()
+    self.to_main_page()
     self.lesson_times = self.config.lesson_times
-    region_name = self.static_config.lesson_region_name[self.server].copy()
+    region_name = self.static_config.lesson_region_name[self.identifier].copy()
     for i in range(0, len(region_name)):
         region_name[i] = pre_process_lesson_name(self, region_name[i])
 
@@ -20,15 +20,10 @@ def implement(self):
         self.logger.info("Purchase lesson ticket times :" + str(purchase_ticket_times))
         purchase_lesson_ticket(self, purchase_ticket_times)
     res = get_lesson_tickets(self)
-    if res == "UNKNOWN":
-        self.logger.info("UNKNOWN tickets")
-        self.lesson_tickets = 999
-    else:
-        self.lesson_tickets = res
-        self.logger.info("tickets: " + str(self.lesson_tickets))
-        if self.lesson_tickets == 0:
-            self.logger.info("no tickets")
-            return True
+    self.lesson_tickets = res
+    if self.lesson_tickets == 0:
+        self.logger.warning("No Lesson Tickets")
+        return True
     to_lesson_location_select(self, True)
     self.swipe(940, 213, 940, 560, duration=0.1, post_sleep_time=0.5)
     if self.config_set.get("lesson_enableInviteFavorStudent"):
@@ -91,7 +86,7 @@ def pre_process_lesson_name(self, name):
 
 
 def to_lesson_region(self, tar_num, cur_num=0):
-    region_name = self.static_config.lesson_region_name[self.server]
+    region_name = self.static_config.lesson_region_name[self.identifier]
     to_select_location(self, True)
     while cur_num != tar_num and self.flag_run:
         self.logger.info("now in page [ " + region_name[cur_num] + " ]")
@@ -132,22 +127,31 @@ def switch_lesson_region_page(self, to_left_page=False, cur_num=0):
 def get_lesson_region_num(self):
     region = {
         'CN': (925, 94, 1240, 128),
-        'Global': (932, 94, 1240, 129),
-        'JP': (932, 94, 1240, 129),
+        'Global_en-us': (932, 94, 1240, 129),
+        'Global_zh-tw': (932, 94, 1240, 129),
+        'Global_ko-kr': (1005, 94, 1240, 129),
+        'JP': (932, 94, 1240, 129)
     }
     check_fail_times = 0
     while self.flag_run:
-        name = self.ocr.get_region_res(self.latest_img_array, region[self.server], self.server, self.ratio)
+        name = self.ocr.get_region_res(
+            baas=self,
+            region=region[self.identifier],
+            language=self.ocr_language,
+            log_info="Region Name"
+        )
         name = pre_process_lesson_name(self, name)
         max_acc, idx = most_similar_string(name, self.lesson_letter_dict, self.lesson_region_name_len)
-        if max_acc < 0.5:
+        if max_acc <= 0.4:
             self.logger.info("NOT FOUND")
             check_fail_times += 1
             if check_fail_times >= 4:
+                self.logger.warning("Fail To Detect Lesson Region Name After 4 Times.")
                 return 'NOT FOUND'
             else:
                 self.update_screenshot_array()
         else:
+            self.logger.info(f"Lesson Region Num : {idx} | Acc : {round(max_acc, 3)}")
             return idx
 
 
@@ -155,11 +159,11 @@ def get_lesson_tickets(self):
     to_purchase_lesson_ticket(self)
     try:
         region = [574, 332, 631, 361]
-        ocr_res = self.ocr.get_region_res(self.latest_img_array, region, 'NUM', self.ratio)
+        ocr_res = self.ocr.get_region_res(self, region, 'en-us', "lesson ticket count", "0123456789")
         return int(ocr_res)
-    except Exception as e:
-        print(e)
-        return "UNKNOWN"
+    except Exception:
+        self.logger.warning("UNKNOWN tickets")
+        return 999
 
 
 def to_purchase_lesson_ticket(self):
@@ -167,15 +171,15 @@ def to_purchase_lesson_ticket(self):
     img_possibles = {
         'lesson_location-select': (148, 101)
     }
-    picture.co_detect(self, None, None, img_ends, img_possibles, skip_loading=True)
+    picture.co_detect(self, None, None, img_ends, img_possibles, skip_first_screenshot=True)
 
 
 def purchase_lesson_ticket(self, times):
     to_purchase_lesson_ticket(self)
     if times == 4:  # max
-        self.click(879, 346, wait=False)
+        self.click(879, 346, wait_over=False)
     else:
-        self.click(807, 346, count=times - 1, wait=False)
+        self.click(807, 346, count=times - 1, wait_over=False)
     rgb_possibles = {'reward_acquired': (640, 116)}
     img_ends = 'lesson_location-select'
     img_possibles = {
@@ -231,7 +235,7 @@ def to_location_info(self, lesson_id):
                 [307, 560], [652, 560], [985, 560]]
     img_possibles = {"lesson_all-locations": click_lo[lesson_id]}
     img_ends = 'lesson_lesson-information'
-    picture.co_detect(self, None, None, img_ends, img_possibles, skip_loading=True)
+    picture.co_detect(self, None, None, img_ends, img_possibles, skip_first_screenshot=True)
 
 
 def start_lesson(self):
@@ -299,8 +303,8 @@ def get_lesson_relationship_counts(self):
     for i in range(0, 9):
         cnt = 0
         for j in range(0, 3):
-            if color.is_rgb_in_range(self, position[i][0] - dx * j, position[i][1], 245, 255, 108, 128,
-                                     134, 154):
+            if color.rgb_in_range(self, position[i][0] - dx * j, position[i][1], 245, 255, 108, 128,
+                                  134, 154):
                 cnt += 1
         res.append(cnt)
     return res
@@ -312,14 +316,14 @@ def get_lesson_each_region_status(self):
              [289, 511], [643, 511], [985, 511]]
     res = []
     for i in range(0, 9):
-        if color.is_rgb_in_range(self, pd_lo[i][0], pd_lo[i][1], 250, 255, 250, 255, 250, 255):
+        if color.rgb_in_range(self, pd_lo[i][0], pd_lo[i][1], 250, 255, 250, 255, 250, 255):
             res.append("available")
-        elif color.is_rgb_in_range(self, pd_lo[i][0], pd_lo[i][1], 230, 249, 230, 249, 230, 249):
+        elif color.rgb_in_range(self, pd_lo[i][0], pd_lo[i][1], 230, 249, 230, 249, 230, 249):
             res.append("done")
-        elif color.is_rgb_in_range(self, pd_lo[i][0], pd_lo[i][1], 31, 160, 31, 160, 31, 160):
+        elif color.rgb_in_range(self, pd_lo[i][0], pd_lo[i][1], 31, 160, 31, 160, 31, 160):
             res.append("lock")
-        elif color.is_rgb_in_range(self, pd_lo[i][0], pd_lo[i][1], 197, 217, 197, 217, 195,
-                                   215):
+        elif color.rgb_in_range(self, pd_lo[i][0], pd_lo[i][1], 197, 217, 197, 217, 195,
+                                215):
             res.append("no activity")
         else:
             res.append("unknown")
@@ -390,7 +394,7 @@ def invite_favor_student(self):
 
     detected_student_pos = dict()  # student name : {(region, block)}
     region_block_names = [[[] for _ in range(9)] for _ in range(len(self.lesson_region_name_len))]
-    template_image_names = get_favor_student_image_template_names(self.server)
+    template_image_names = get_favor_student_image_template_names(self.identifier)
     template_not_exist = [x for x in favorStudentList if x not in template_image_names]
     if len(template_not_exist) > 0:
         self.logger.warning("Didn't find template image for [ " + ", ".join(template_not_exist) + " ]")
@@ -504,8 +508,8 @@ def get_favor_student_detect_region(lesson_cnt):
     return x1, y1, x1 + dx2, y1 + dy2
 
 
-def get_favor_student_image_template_names(server):
-    server_image_module_path = 'src.images.' + server + '.x_y_range.lesson_affection'
+def get_favor_student_image_template_names(identifier):
+    server_image_module_path = 'src.images.' + identifier + '.x_y_range.lesson_affection'
     data = importlib.import_module(server_image_module_path)
     x_y_range = getattr(data, 'x_y_range', None)
     return list(x_y_range.keys())

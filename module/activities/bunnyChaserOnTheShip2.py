@@ -17,7 +17,7 @@ def implement(self):
 
 
 def sweep(self, number, times):
-    self.quick_method_to_main_page()
+    self.to_main_page()
     to_activity(self, "mission", True, True)
     ap = self.get_ap()
     sweep_one_time_ap = [0, 10, 10, 10, 12, 12, 12, 15, 15, 15]
@@ -55,7 +55,7 @@ def sweep(self, number, times):
 
 # 推剧情的测试完没有问题
 def explore_story(self):
-    self.quick_method_to_main_page()
+    self.to_main_page()
     to_activity(self, "story", True, True)
     last_target_task = 1
     total_stories = 5
@@ -64,7 +64,7 @@ def explore_story(self):
         if plot == "normal_task_task-info" or plot == "activity_task-info":
             res = color.check_sweep_availability(self)
         elif plot == "main_story_episode-info":
-            if not color.is_rgb_in_range(self, 362, 322, 232, 255, 219, 255, 0, 30):
+            if not color.rgb_in_range(self, 362, 322, 232, 255, 219, 255, 0, 30):
                 res = "sss"
             else:
                 res = "no-pass"
@@ -77,7 +77,7 @@ def explore_story(self):
             if plot == "normal_task_task-info" or plot == "activity_task-info":
                 res = color.check_sweep_availability(self)
             elif plot == "main_story_episode-info":
-                if not color.is_rgb_in_range(self, 362, 322, 232, 255, 219, 255, 0, 30):
+                if not color.rgb_in_range(self, 362, 322, 232, 255, 219, 255, 0, 30):
                     res = "sss"
                 else:
                     res = "no-pass"
@@ -102,7 +102,7 @@ def start_story(self):
         "formation_edit1",
         "reward_acquired"
     ]
-    res = picture.co_detect(self, rgb_ends, None, None, img_possibles, skip_loading=True)
+    res = picture.co_detect(self, rgb_ends, None, None, img_possibles, skip_first_screenshot=True)
     if res == "formation_edit1":
         start_fight(self, 1)
         main_story.auto_fight(self)
@@ -114,11 +114,11 @@ def start_story(self):
 def start_fight(self, i):
     rgb_possibles = {"formation_edit" + str(i): (1156, 659)}
     rgb_ends = "fighting_feature"
-    picture.co_detect(self, rgb_ends, rgb_possibles, skip_loading=True)
+    picture.co_detect(self, rgb_ends, rgb_possibles, skip_first_screenshot=True)
 
 
 def explore_mission(self):
-    self.quick_method_to_main_page()
+    self.to_main_page()
     to_activity(self, "mission", True, True)
     last_target_mission = 1
     total_missions = 9
@@ -146,7 +146,7 @@ def explore_mission(self):
 
 # 挑战这里还没改动
 def explore_challenge(self):
-    self.quick_method_to_main_page()
+    self.to_main_page()
     to_activity(self, "challenge", True, True)
     tasks = [
         "challenge2_sss",
@@ -173,7 +173,9 @@ def explore_challenge(self):
             elif res == "no-pass" or res == "pass":
                 need_fight = True
         if need_fight:
-            execute_grid_task(self, current_task_stage_data)
+            if not execute_grid_task(self, current_task_stage_data):
+                self.logger.error(f"Skipping task due to error.")
+                continue
             i += 1
         main_story.auto_fight(self)
         if self.config.manual_boss:
@@ -218,11 +220,10 @@ def to_activity(self, region, skip_first_screenshot=False, need_swipe=False):
         'normal_task_skip-sweep-complete': (643, 506),
         'normal_task_fight-complete-confirm': (1160, 666),
         'normal_task_reward-acquired-confirm': (800, 660),
-        'normal_task_mission-conclude-confirm': (1042, 671),
         "activity_exchange-confirm": (673, 603),
     }
     img_ends = "activity_menu"
-    picture.co_detect(self, None, None, img_ends, img_possibles, skip_loading=skip_first_screenshot)
+    picture.co_detect(self, None, None, img_ends, img_possibles, skip_first_screenshot=skip_first_screenshot)
     if region is None:
         return True
     rgb_lo = {
@@ -236,7 +237,7 @@ def to_activity(self, region, skip_first_screenshot=False, need_swipe=False):
         "challenge": 1196,
     }
     while self.flag_run:
-        if not color.is_rgb_in_range(self, rgb_lo[region], 114, 20, 60, 40, 80, 70, 116):
+        if not color.rgb_in_range(self, rgb_lo[region], 114, 20, 60, 40, 80, 70, 116):
             self.click(click_lo[region], 87)
             time.sleep(self.screenshot_interval)
             self.latest_img_array = self.get_screenshot_array()
@@ -335,12 +336,12 @@ def exchange_reward(self):
     img_ends = "activity_exchange-menu"
     picture.co_detect(self, None, None, img_ends, img_possibles, True)
     while 1:
-        while color.is_rgb_in_range(self, 314, 684, 235, 255, 223, 243, 65, 85):
+        while color.rgb_in_range(self, 314, 684, 235, 255, 223, 243, 65, 85):
             self.click(453, 651, wait_over=True, duration=0.5)
             time.sleep(0.5)
             continue_exchange(self)
             to_exchange(self, True)
-        if color.is_rgb_in_range(self, 45, 684, 185, 225, 185, 225, 185, 225):
+        if color.rgb_in_range(self, 45, 684, 185, 225, 185, 225, 185, 225):
             if get_exchange_assets(self) >= 6:
                 self.logger.info("refresh exchange times")
                 refresh_exchange_times(self)
