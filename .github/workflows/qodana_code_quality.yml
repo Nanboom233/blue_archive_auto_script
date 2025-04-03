@@ -22,7 +22,7 @@ jobs:
         uses: JetBrains/qodana-action@v2024.3
         with:
           pr-mode: false
-          args: --linter,jetbrains/qodana-<python|community>:2024.3
+          args: --linter,jetbrains/qodana-python:2024.3
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN_1086752108 }}
           QODANA_ENDPOINT: 'https://qodana.cloud'
