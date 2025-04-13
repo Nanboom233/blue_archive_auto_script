@@ -10,7 +10,7 @@ def implement(self):
         return True
 
     self.to_main_page()
-    buy_ticket_times = max(0, self.config.purchase_rewarded_task_ticket_times)  # ** 购买悬赏委托券的次数
+    buy_ticket_times = max(0, self.config.purchase_rewarded_task_ticket_times)
     buy_ticket_times = min(buy_ticket_times, 12)
     if buy_ticket_times > 0:
         to_choose_bounty(self, True)
@@ -46,7 +46,7 @@ def implement(self):
 
 
 def get_bounty_coin(self):
-    to_bounty(self, 0, True)
+    to_bounty(self, 1, True)
     region = (148, 581, 376, 614)
     ocr_res = self.ocr.get_region_res(
         self,
