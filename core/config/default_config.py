@@ -3384,9 +3384,9 @@ STATIC_DEFAULT_CONFIG = '''
         ]
     },
     "current_game_activity": {
-        "CN": null,
-        "Global": null,
-        "JP": "FromOpera0068WithLove"
+        "CN": "InSearchOfAHiddenHeritageTrinity'sExtracurricularActivities",
+        "Global": "SerenadePromenade",
+        "JP": "JP_2025_04_22"
     },
     "dailyGameActivity": {
         "CN": null,
@@ -3870,7 +3870,7 @@ STATIC_DEFAULT_CONFIG = '''
       "JP_implementation": true
     },
     {
-      "CN_name": "流美",
+      "CN_name": "瑠美",
       "CN_implementation": false,
       "Global_name": "Rumi",
       "Global_implementation": true,
