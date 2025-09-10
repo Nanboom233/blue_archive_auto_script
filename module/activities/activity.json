@@ -1,5 +1,5 @@
 {
-    "last_update_time": 1757484854,
+    "last_update_time": 1757536743,
     "JP": {
         "Events": {
             "name": "Sheside outside",
@@ -9,7 +9,6 @@
         "Raids": {
             "total_assault": null,
             "grand_assault": {
-                "Stages": "",
                 "name": "Decagrammaton: Chesed (Grand Assault)",
                 "begin_time": "1757469600",
                 "end_time": "1758049140"
@@ -82,8 +81,8 @@
         "Rewards": {
             "commissions_rewards": 1,
             "scrimmage_rewards": 1,
-            "bounty_hunts_rewards": 1,
-            "schedule_rewards": 1,
+            "bounty_hunts_rewards": 2,
+            "schedule_rewards": 2,
             "normal_mission_rewards": 1,
             "hard_mission_rewards": 1,
             "level_exp_rewards": 1
