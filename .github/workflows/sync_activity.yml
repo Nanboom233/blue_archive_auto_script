@@ -53,3 +53,7 @@ jobs:
           title: "CI/sync activity.json (auto-update by workflow)"
           body: "${{ steps.pr_body.outputs.body }}"
           branch: "auto-sync-activity"
+          reviewers: |
+            Nanboom233
+            shenxian66ya
+            beihaihaihai
