@@ -1,5 +1,5 @@
 {
-    "last_update_time": 1759696582,
+    "last_update_time": 1760042370,
     "JP": {
         "Event": {
             "name": "誰が為の芸術～偽飾の絵画と美学の行方～",
@@ -9,18 +9,18 @@
             "stages_file": "module/activities/activity_data/JP_event_stages.json"
         },
         "Raids": {
-            "total_assault": {
-                "name": "Geburah",
-                "begin_time": "1759284000",
-                "end_time": "1759863600"
-            },
+            "total_assault": null,
             "grand_assault": null,
             "limit_break_assault": {
                 "name": "The Fury of Set",
                 "begin_time": "1758765600",
                 "end_time": "1761073200"
             },
-            "joint_firing_drill": null
+            "joint_firing_drill": {
+                "name": "Defense Drill",
+                "begin_time": "1759888800",
+                "end_time": "1760468400"
+            }
         },
         "Rewards": {
             "commissions_rewards": 1,
@@ -33,53 +33,53 @@
         }
     },
     "Global": {
-        "Event": {
-            "name": "Highlander Railroad Runaway Incident: And the Train Disappeared",
-            "schaledb_id": "846",
-            "begin_time": "1758592800",
-            "end_time": "1759802400",
-            "stages_file": "module/activities/activity_data/Global_event_stages.json"
-        },
+        "Event": null,
         "Raids": {
-            "total_assault": {
-                "name": "Gregorius",
-                "begin_time": "1759197600",
-                "end_time": "1759777200"
-            },
+            "total_assault": null,
             "grand_assault": null,
             "limit_break_assault": {
                 "name": "Tiphareth",
                 "begin_time": "1758679200",
                 "end_time": "1760986800"
             },
+            "joint_firing_drill": {
+                "name": "Shooting Drill",
+                "begin_time": "1759802400",
+                "end_time": "1760382000"
+            }
+        },
+        "Rewards": {
+            "commissions_rewards": 2,
+            "scrimmage_rewards": 1,
+            "bounty_hunts_rewards": 1,
+            "schedule_rewards": 2,
+            "normal_mission_rewards": 1,
+            "hard_mission_rewards": 1,
+            "level_exp_rewards": 2
+        }
+    },
+    "CN": {
+        "Event": {
+            "name": "-ive aLIVE!",
+            "schaledb_id": "836",
+            "begin_time": "1759384800",
+            "end_time": "1760594400",
+            "stages_file": "module/activities/activity_data/CN_event_stages.json"
+        },
+        "Raids": {
+            "total_assault": null,
+            "grand_assault": {
+                "name": "大决战 比纳 • 街区战",
+                "begin_time": "1759989600",
+                "end_time": "1760558340"
+            },
+            "limit_break_assault": null,
             "joint_firing_drill": null
         },
         "Rewards": {
             "commissions_rewards": 1,
             "scrimmage_rewards": 1,
             "bounty_hunts_rewards": 1,
-            "schedule_rewards": 1,
-            "normal_mission_rewards": 2,
-            "hard_mission_rewards": 1,
-            "level_exp_rewards": 1
-        }
-    },
-    "CN": {
-        "Event": null,
-        "Raids": {
-            "total_assault": null,
-            "grand_assault": null,
-            "limit_break_assault": null,
-            "joint_firing_drill": {
-                "name": "Escort Drill",
-                "begin_time": "1759384800",
-                "end_time": "1759953600"
-            }
-        },
-        "Rewards": {
-            "commissions_rewards": 1,
-            "scrimmage_rewards": 1,
-            "bounty_hunts_rewards": 3,
             "schedule_rewards": 1,
             "normal_mission_rewards": 1,
             "hard_mission_rewards": 1,
