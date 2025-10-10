@@ -17,11 +17,11 @@ import module.ExploreTasks.explore_task
 from core import position, picture, utils
 from core.config.config_set import ConfigSet
 from core.device import emulator_manager
-from core.device.Control import Control
-from core.device.Screenshot import Screenshot
 from core.device.connection import Connection
+from core.device.control import Control
+from core.device.screenshot import Screenshot
 from core.device.emulator_manager import process_api
-from core.device.uiautomator2_client import U2Client
+from core.device.uiautomator2.uiautomator2 import U2Client
 from core.exception import RequestHumanTakeOver, FunctionCallTimeout, PackageIncorrect, LogTraceback
 from core.notification import notify, toast
 from core.pushkit import push
@@ -54,7 +54,6 @@ func_dict = {
     'collect_daily_power': module.collect_reward.implement,
     'total_assault': module.total_assault.implement,
     'restart': module.restart.implement,
-    'refresh_uiautomator2': module.refresh_uiautomator2.implement,
     'activity_sweep': module.sweep_activity.implement,
     'explore_activity_story': module.explore_activity_story.implement,
     'explore_activity_challenge': module.explore_activity_challenge.implement,
@@ -99,7 +98,6 @@ class Baas_thread:
         self.static_config = ConfigSet.static_config
         self.ocr = None
         self.logger = utils.Logger(logger_signal)
-        self.last_refresh_u2_time = 0
         self.latest_img_array = None
         self.total_assault_difficulty_names = ["NORMAL", "HARD", "VERYHARD", "HARDCORE", "EXTREME", "INSANE", "TORMENT"]
         self.button_signal = button_signal
@@ -129,7 +127,7 @@ class Baas_thread:
     def click(self, x, y, count=1, rate=0, duration=0, wait_over=False):
         if not self.flag_run:
             raise RequestHumanTakeOver
-        if self.control.method == "nemu":
+        if self.screenshot.screenshot_method == "nemu":
             self.click_thread(x, y, count, rate, duration)
             return
         click_ = threading.Thread(target=self.click_thread, args=(x, y, count, rate, duration))
@@ -298,8 +296,8 @@ class Baas_thread:
                 self.package_name = self.connection.get_package_name()
                 self.activity_name = self.connection.get_activity_name()
 
-            self.screenshot = Screenshot(self)
             self.control = Control(self)
+            self.screenshot = Screenshot(self)
             self.set_screenshot_interval(self.config.screenshot_interval)
 
             self.check_resolution()
@@ -403,8 +401,6 @@ class Baas_thread:
                 if nextTask:
                     self.task_finish_to_main_page = True
                     self.daily_config_refresh()
-                    if time.time() - self.last_refresh_u2_time > 10800:
-                        self.solve('refresh_uiautomator2')
                     self.genScheduleLog(nextTask)
 
                     task_with_log_info = []
@@ -821,18 +817,6 @@ class Baas_thread:
     def set_screenshot_interval(self, interval):
         self.screenshot_interval = self.screenshot.set_screenshot_interval(interval)
 
-    def wait_uiautomator_start(self):
-        for i in range(0, 10):
-            try:
-                self.u2.uiautomator.start()
-                while not self.u2.uiautomator.running():
-                    time.sleep(0.1)
-                self.latest_img_array = cv2.cvtColor(np.array(self.u2.screenshot()), cv2.COLOR_RGB2BGR)
-                return
-            except Exception as e:
-                print(e)
-                self.u2.uiautomator.start()
-
     def daily_config_refresh(self):
         now = datetime.now()
         hour = now.hour
@@ -941,7 +925,7 @@ class Baas_thread:
 
     def check_resolution(self):
         if self.is_android_device:
-            self.resolution = self._get_android_device_resolution()
+            self.resolution = self.connection._get_android_device_resolution()
         else:
             self.resolution = self.connection.app_process_window.get_resolution()
 
@@ -1014,23 +998,6 @@ class Baas_thread:
             return
         self.logger.error(f"Invalid Screen Ratio: {width}:{height}, please adjust your screen resolution to 16:9.")
         raise Exception("Invalid Screen Ratio")
-
-    def _get_android_device_resolution(self):
-        self.u2_client = U2Client.get_instance(self.serial)
-        self.u2 = self.u2_client.get_connection()
-        self.last_refresh_u2_time = time.time()
-        return self.resolution_uiautomator2()
-
-    def resolution_uiautomator2(self):
-        for i in range(0, 3):
-            try:
-                w, h = self.u2.info['displayWidth'], self.u2.info['displayHeight']
-                if w < h:
-                    w, h = h, w
-                return w, h
-            except Exception as e:
-                print(e)
-                time.sleep(1)
 
     def main_page_update_data(self):
         self.get_ap(True)
