@@ -45,36 +45,38 @@ pip install -r requirements.txt
 
 
 ## 方案二: 使用 uv
+项目的 ```.python-version``` 文件已经指定了 Python 版本, uv 会自动配置正确的 Python 版本。
 
 ### 1. 安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)
 ### 2. 创建虚拟环境
 ```shell
-uv venv --python 3.9
+uv sync
 ```
 ### 3. 激活环境
 ```shell
 .\.venv\Scripts\activate
 ```
-### 安装依赖
-```shell
-uv sync
-```
 
 ## 方案三: 使用 Anaconda
 
-### 1. 安装 [Anaconda](https://www.anaconda.com/products/distribution)
+### 1. 安装 [Anaconda](https://www.anaconda.com/download)
 ### 2. 创建3.9.21版本的python环境
 ```shell
-conda create -n baas_env python==3.9.21
+conda create -n baas_env python=3.9.21
 ```
 
-### 3. 激活环境
+### 3. 初始化 Anaconda（初次使用Anaconda）
+如果您并非是初次使用Anaconda，可以跳过此步骤
+```shell
+conda init
+```
 
+### 4. 激活环境
 ```shell
 conda activate baas_env
 ```
 
-### 4. 安装依赖
+### 5. 安装依赖
 - Linux / MacOS
 ```shell
 conda install --yes --file requirements-linux.txt
