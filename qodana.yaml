@@ -1,6 +1,13 @@
 version: "1.0"
-linter: jetbrains/qodana-jvm:2024.3
 profile:
   name: qodana.recommended
-include:
-  - name: CheckDependencyLicenses
+linter: qodana-python-community:2025.2
+exclude:
+  - name: All
+    paths:
+      - gui
+bootstrap: |
+  python -m venv /data/project/.venv
+  . /data/project/.venv/bin/activate
+  pip install -r requirements-linux.txt
+  pip install -r deploy/installer/requirements.installer.txt
