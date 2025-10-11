@@ -40,7 +40,7 @@ pip install -r requirements-linux.txt
 ```
 - Windows
 ```shell
-pip install -r requirements.txt
+pip install -r requirements-windows.txt
 ```
 
 
@@ -83,5 +83,5 @@ conda install --yes --file requirements-linux.txt
 ```
 - Windows
 ```shell
-conda install --yes --file requirements.txt
+conda install --yes --file requirements-windows.txt
 ```

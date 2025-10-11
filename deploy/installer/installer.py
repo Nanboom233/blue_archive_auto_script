@@ -476,7 +476,7 @@ def install_package():
             [
                 "install",
                 "-r",
-                str(BAAS_ROOT_PATH / "requirements.txt"),
+                str(BAAS_ROOT_PATH / "requirements-windows.txt"),
                 "--no-warn-script-location",
             ],
         )

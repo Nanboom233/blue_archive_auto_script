@@ -6,8 +6,13 @@ imgaug
 dulwich
 adbutils == 2.9.3
 uiautomator2 == 3.4.0
-opencv-python-headless
+opencv-python
+pyinstaller
+requests
+tqdm
 PyQt-Fluent-Widgets
 psutil
 tomli == 2.2.1
 tomli_w == 1.2.0
+PyAutoGUI
+mss
