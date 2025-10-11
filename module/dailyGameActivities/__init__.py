@@ -1,2 +1,0 @@
-from module.dailyGameActivities import serikaSummerRamenStall
-from module.dailyGameActivities import HinaSummerVacationAudioGame
