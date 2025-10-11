@@ -6,11 +6,11 @@ import os
 import re
 import sys
 import time
-import coredumpy
 from collections import OrderedDict
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import coredumpy
 import requests
 from lxml import etree
 
@@ -601,7 +601,7 @@ def update_activity():
     return final_result
 
 
-if __name__ == "__main__":
+def main():
     logger = logging.getLogger("activity_updater")
     logger.setLevel(logging.DEBUG)
     log_formatter = logging.Formatter('<%(asctime)s> [%(levelname)s] <%(message)s>', datefmt='%Y-%m-%d %H:%M:%S')
@@ -622,12 +622,23 @@ if __name__ == "__main__":
     logger.info("Starting activity information retrieval and merging process...")
     final_result = update_activity()
     logger.info("Activity information retrieval and merging process completed.")
+
     # determine if any data is updated
     if os.path.exists(activity_json_path):
         with open(activity_json_path, "r", encoding="utf-8") as f:
             original_data = json.load(f)
             original_data.pop("last_update_time")  # remove last_update_time for comparison
-            if original_data == final_result:
+
+            # load old stage data for comparison
+            for server in ["CN", "Global", "JP"]:
+                # remove previous stage data file if exists
+                stages_path = os.path.join(os.path.dirname(__file__), f"activity_data/{server}_event_stages.json")
+                if os.path.exists(stages_path):
+                    with open(stages_path, "r", encoding="utf-8") as f:
+                        original_data[server]["Event"].pop("stages_file")
+                        original_data[server]["Event"]["stages"] = json.load(f)
+
+            if json.dumps(original_data, sort_keys=True) == json.dumps(final_result, sort_keys=True):
                 logger.info("No updates in activity data, exiting...")
                 sys.exit(0)
     logger.info("Changes detected in activity data, updating activity.json...")
@@ -643,7 +654,8 @@ if __name__ == "__main__":
             os.remove(stages_path)
         if ordered_result[server]["Event"] is not None and "stages" in ordered_result[server]["Event"]:
             stages = ordered_result[server]["Event"].pop("stages")
-            ordered_result[server]["Event"]["stages_file"] = f"module/activities/activity_data/{server}_event_stages.json"
+            ordered_result[server]["Event"][
+                "stages_file"] = f"module/activities/activity_data/{server}_event_stages.json"
             with open(stages_path, "w", encoding="utf-8") as f:
                 json.dump(stages, f, ensure_ascii=False, indent=4)
             logger.info(f"Stage data for {server} server has been saved to {stages_path}.")
@@ -656,7 +668,8 @@ if __name__ == "__main__":
     with open(pr_body_md_path, "w", encoding="utf-8") as f:
         f.write("### Detected a change in activity data, details as follows:\n\n")
         if os.path.exists(activity_json_path):
-            with open(activity_json_path, 'r', encoding='utf-8') as f1, open(tmp_json_path, 'r', encoding='utf-8') as f2:
+            with open(activity_json_path, 'r', encoding='utf-8') as f1, open(tmp_json_path, 'r',
+                                                                             encoding='utf-8') as f2:
                 old_data, new_data = f1.readlines(), f2.readlines()
         else:
             with open(tmp_json_path, 'r', encoding='utf-8') as f2:
@@ -670,3 +683,7 @@ if __name__ == "__main__":
         f.write(f"\n> **Repository Owner**: @{repo_owner}\n")
         f.write(f"\n> Last update time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
     logger.info("Pull request body markdown generated at activity_update_log.md.")
+
+
+if __name__ == "__main__":
+    main()
