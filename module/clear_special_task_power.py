@@ -1,5 +1,6 @@
 import time
 
+from module.ExploreTasks import TaskUtils
 from core import color, picture
 
 
@@ -93,7 +94,7 @@ def one_detect(self, a, b):
         img_possibles = {"special_task_level-list": (1118, los[i])}
         img_ends = "special_task_task-info"
         picture.co_detect(self, None, None, img_ends, img_possibles, skip_first_screenshot=True)
-        t = color.check_sweep_availability(self)
+        t = TaskUtils.check_sweep_availability(self)
         if t == "sss":
             if b == "max":
                 self.click(1085, 300, wait_over=True)

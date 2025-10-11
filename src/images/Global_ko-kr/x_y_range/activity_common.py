@@ -35,5 +35,8 @@ x_y_range = {
     'mission-chosen-1': (1035, 93, 1115, 127),
 
     'challenge-not-chosen-0': (1094, 89, 1149, 127),
-    'challenge-chosen-0': (1094, 89, 1149, 127)
+    'challenge-chosen-0': (1094, 89, 1149, 127),
+
+    'entry-1': (36, 490, 331, 594),
+    'entry-2': (1158, 166, 1228, 236)
 }

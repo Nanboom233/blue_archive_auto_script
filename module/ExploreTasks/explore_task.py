@@ -1,3 +1,4 @@
+from module.ExploreTasks import TaskUtils
 from core import color, image, picture
 from module import main_story
 from module.ExploreTasks.TaskUtils import to_mission_info, execute_grid_task, get_challenge_state, \
@@ -87,7 +88,7 @@ def need_fight(self, taskDataName: str, isNormal: bool):
             return color.rgb_in_range(self, 768, 357, 60, 80, 60, 80, 60, 80)
 
     # sss check
-    sss_check = color.check_sweep_availability(self, True)
+    sss_check = TaskUtils.check_sweep_availability(self, True)
     if sss_check == 'no-pass' or sss_check == 'pass':
         if not isNormal:
             return "sss" in taskDataName

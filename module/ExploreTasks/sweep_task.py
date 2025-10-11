@@ -1,9 +1,9 @@
 from copy import deepcopy
 
 from core import picture, Baas_thread, image
-from core.color import check_sweep_availability
 from core.config.config_set import ConfigSet
-from module.ExploreTasks.TaskUtils import to_hard_event, to_mission_info, to_region, to_normal_event
+from module.ExploreTasks.TaskUtils import to_hard_event, to_mission_info, to_region, to_normal_event, \
+    check_sweep_availability
 
 
 def print_task_list(self: Baas_thread, tasklist: list[list], title: str, isNormal: bool) -> None:

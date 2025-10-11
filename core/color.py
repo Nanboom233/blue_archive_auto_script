@@ -93,24 +93,6 @@ def match_any_rgb_in_feature(self, featureName):
     return False
 
 
-def check_sweep_availability(self, is_mainline=False):
-    if is_mainline:
-        if match_rgb_feature(self, "mainLineTaskNoPass"):
-            return "no-pass"
-        if match_rgb_feature(self, "mainLineTaskSSS"):
-            return "sss"
-        if match_any_rgb_in_feature(self, "mainLineTaskSSS"):
-            return "pass"
-    if not is_mainline:
-        if match_rgb_feature(self, "sideTaskNoPass"):
-            return "no-pass"
-        if match_rgb_feature(self, "sideTaskSSS"):
-            return "sss"
-        if match_any_rgb_in_feature(self, "sideTaskSSS"):
-            return "pass"
-    return "unknown"
-
-
 def getRegionMeanRGB(image, x1, y1, x2, y2):
     return image[y1:y2, x1:x2].mean(axis=0).mean(axis=0)
 

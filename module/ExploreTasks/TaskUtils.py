@@ -2,6 +2,7 @@ import json
 import time
 
 from core import image, picture, Baas_thread, color
+from core.color import match_rgb_feature, match_any_rgb_in_feature
 from core.image import swipe_search_target_str
 from module import main_story
 
@@ -126,6 +127,24 @@ def get_stage_data(region, isNormal):
     return stage_data
 
 
+def check_sweep_availability(self, is_mainline=False):
+    if is_mainline:
+        if match_rgb_feature(self, "mainLineTaskNoPass"):
+            return "no-pass"
+        if match_rgb_feature(self, "mainLineTaskSSS"):
+            return "sss"
+        if match_any_rgb_in_feature(self, "mainLineTaskSSS"):
+            return "pass"
+    if not is_mainline:
+        if match_rgb_feature(self, "sideTaskNoPass"):
+            return "no-pass"
+        if match_rgb_feature(self, "sideTaskSSS"):
+            return "sss"
+        if match_any_rgb_in_feature(self, "sideTaskSSS"):
+            return "pass"
+    return "unknown"
+
+
 def get_challenge_state(self, challenge_count=1) -> list[int]:
     """
         Returns:
@@ -138,7 +157,7 @@ def get_challenge_state(self, challenge_count=1) -> list[int]:
     # to challenge menu
     img_ends = 'normal_task_challenge-menu'
     img_possibles = {
-        "normal_task_challenge-button": (536,302),
+        "normal_task_challenge-button": (536, 302),
         "activity_quest-challenge-button": (319, 270)
     }
     picture.co_detect(self, None, None, img_ends, img_possibles, True)

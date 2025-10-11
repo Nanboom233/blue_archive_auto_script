@@ -1,5 +1,6 @@
 import time
 
+from module.ExploreTask import TaskUtils
 from core import color, picture
 from module.clear_special_task_power import get_task_count
 
@@ -91,7 +92,7 @@ def scrimmage_common_operation(self, a, b):
         img_possibles = {"scrimmage_level-list": (1118, los[i])}
         img_ends = "scrimmage_task-info"
         picture.co_detect(self, rgb_ends, rgb_possibles, img_ends, img_possibles, True)
-        t = color.check_sweep_availability(self)
+        t = TaskUtils.check_sweep_availability(self)
         if t == "sss":
             if b == "max":
                 self.click(1085, 300, wait_over=True)

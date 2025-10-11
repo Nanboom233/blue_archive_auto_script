@@ -1,11 +1,10 @@
 import json
 import time
 
+from module.ExploreTasks import TaskUtils
 from core import color, picture
 from core.image import compare_image, swipe_search_target_str
 from module import main_story
-from module.ExploreTasks.TaskUtils import execute_grid_task
-
 
 
 # korean 11 will be recognized as ll
@@ -15,18 +14,19 @@ def ocr_str_replace_func(st):
 
 # activity config
 def get_stage_data(self):
-    json_path = 'src/explore_task_data/activities/' + self.current_game_activity + '.json'
-    with open(json_path, 'r') as f:
-        stage_data = json.load(f)
-    return stage_data
+    if self.current_game_activity is not None and "stages_file" in self.current_game_activity:
+        with open(self.current_game_activity["stages_file"], 'r') as f:
+            stage_data = json.load(f)
+        return stage_data
+    return None
 
 
 def to_activity(self, region=None, skip_first_screenshot=False):
-    img_possibles = {
+    self.to_main_page()
+    img_reactions = {
+        "activity_entry-1": (100, 529),
+        "activity_entry-2": (1181, 195),
         "main_page_get-character": (640, 360),
-        "activity_enter1": (1196, 195),
-        "activity_enter2": (100, 149),
-        "activity_enter3": (218, 530),
         'activity_fight-success-confirm': (640, 663),
         "plot_menu": (1205, 34),
         "plot_skip-plot-button": (1213, 116),
@@ -50,12 +50,12 @@ def to_activity(self, region=None, skip_first_screenshot=False):
         'normal_task_skip-sweep-complete': (643, 506),
         'normal_task_fight-complete-confirm': (1160, 666),
         'normal_task_reward-acquired-confirm': (800, 660),
-        "activity_exchange-confirm": (673, 603),
+        "activity_exchange-confirm": (673, 603)
     }
     img_ends = "activity_menu"
-    picture.co_detect(self, None, None, img_ends, img_possibles, skip_first_screenshot=skip_first_screenshot)
+    picture.co_detect(self, None, None, img_ends, img_reactions, skip_first_screenshot=skip_first_screenshot)
 
-    img_possibles = {
+    img_reactions = {
         "story": {
             "activity_story-not-chosen-0": (844, 89),
             "activity_story-not-chosen-1": (936, 89),
@@ -82,9 +82,7 @@ def to_activity(self, region=None, skip_first_screenshot=False):
             "activity_challenge-chosen-0",
         ]
     }
-    img_possibles = img_possibles[region]
-    img_ends = img_ends[region]
-    picture.co_detect(self, None, None, img_ends, img_possibles, skip_first_screenshot=True)
+    picture.co_detect(self, img_ends=img_ends[region], img_reactions=img_reactions[region], skip_first_screenshot=True)
 
 
 # sweep
@@ -118,7 +116,7 @@ def activity_sweep(self):
             continue
         self.logger.info("Start sweep task " + str(number[i]) + " :" + str(sweep_times) + " times")
         to_mission_task_info(self, number[i], total_mission)
-        res = color.check_sweep_availability(self)
+        res = TaskUtils.check_sweep_availability(self)
         if res == "sss":
             self.click(1032, 299, count=click_times, duration=duration, wait_over=True)
             res = start_sweep(self, True)
@@ -163,8 +161,9 @@ def start_sweep(self, skip_first_screenshot=False):
 
 def explore_activity_mission(self):
     self.stage_data = get_stage_data(self)
-    total_mission = len(self.stage_data["mission"])
-    self.to_main_page()
+    if self.stage_data is None:
+        return True
+    total_mission = len(self.stage_data)
     to_activity(self, "mission", True)
     last_target_task = 1
     while self.flag_run:
@@ -172,7 +171,7 @@ def explore_activity_mission(self):
         res = check_sweep_availability(self, plot)
         while res == "sss" and last_target_task <= total_mission - 1:
             self.logger.info("Current mission sss check next mission")
-            to_activity(self, "mission", True)
+            self.click(1000, 700, wait_over=True)
             last_target_task += 1
             plot = to_mission_task_info(self, last_target_task, total_mission)
             res = check_sweep_availability(self, plot)
@@ -182,7 +181,6 @@ def explore_activity_mission(self):
         start_story(self)
         to_activity(self, "story", True)
         to_activity(self, "mission", True)
-
 
 
 def to_mission_task_info(self, target_index, total_mission):
@@ -216,9 +214,6 @@ def to_mission_task_info(self, target_index, total_mission):
 
 
 def explore_activity_story(self):
-    self.stage_data = get_stage_data(self)
-    total_story = self.stage_data["total_story"]
-    self.to_main_page()
     to_activity(self, "story", True)
     last_target_task = 1
     while self.flag_run:
@@ -247,45 +242,6 @@ def to_challenge_task_info(self, number):
         "normal_task_SUB"
     ]
     return picture.co_detect(self, None, None, img_ends, img_possibles, True)
-
-
-def explore_activity_challenge(self):
-    self.to_main_page()
-    to_activity(self, "challenge", True)
-    tasks = [
-        "challenge2_sss",
-        "challenge2_task",
-        "challenge4_sss",
-        "challenge4_task"
-    ]
-    stage_data = get_stage_data(self)
-    for i in range(0, len(tasks)):
-        data = tasks[i].split("_")
-        task_number = int(data[0].replace("challenge", ""))
-        to_challenge_task_info(self, task_number)
-        current_task_stage_data = stage_data[tasks[i]]
-        need_fight = False
-        if "task" in data:
-            need_fight = True
-        elif "sss" in data:
-            res = color.check_sweep_availability(self)
-            if res == "sss":
-                self.logger.info("Challenge " + str(task_number) + " sss no need to fight")
-                to_activity(self, "challenge", True)
-                i += 1
-                continue
-            elif res == "no-pass" or res == "pass":
-                need_fight = True
-        if need_fight:
-            if not execute_grid_task(self, current_task_stage_data):
-                self.logger.error(f"Skipping task due to error.")
-                continue
-            i += 1
-        main_story.auto_fight(self)
-        if self.config.manual_boss:
-            self.click(1235, 41)
-        to_activity(self, "mission", True)
-        to_activity(self, "challenge", True)
 
 
 def start_story(self):
@@ -348,7 +304,7 @@ def check_sweep_availability(self, plot):
             else:
                 return "no-pass"
         else:
-            return color.check_sweep_availability(self)
+            return TaskUtils.check_sweep_availability(self)
     elif plot == "main_story_episode-info":
         if not color.rgb_in_range(self, 362, 322, 232, 255, 219, 255, 0, 30):
             return "sss"
