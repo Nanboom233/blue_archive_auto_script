@@ -1,0 +1,3122 @@
+{
+    "event_id": 829,
+    "event_name_en": "Academy Club Story: A Pair's Final Adventure",
+    "event_name_cn": "学漫同人物语 二人所追求的最终回",
+    "event_name_jp": "学漫同人物語～2人が求める最終回～",
+    "stages": [
+        {
+            "stage_index": 1,
+            "stage_name": "Cherry Blossom Grounds Building 3",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "White Mustache Road",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Ocean Side Road 66",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Reconstruction Planned Area C",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "1st Northeast Road",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "White View Marina",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Brown Bear Open-Air Bath",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Sunrise Mountain Southern Road",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "D.U. Central Road",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "D.U. South Street",
+            "entry_cost": 1,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Trinity Cathedral Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "In Front of the Kama-Boko Stage",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Resort Designated Beach Entrance",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "No. 7 Relaxed Road",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Athlete Standby Zone",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Warm-Up Track",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Dream Bread Second Street",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Pleasant Walk, 1st St.",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Business District 3, Area 2",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Outdoor Hallway Eastern Passage",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Black Tortoise Promenade Cabin",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Public Seafood Loading Dock Front",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Abandoned Training Ground Entrance",
+            "entry_cost": 10,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Monday Morning Express Train",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Ruins Underground B-1",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Nishi Alps Campground No. 3 Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Banquet Hall Central West Hallway",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "1F Central Terrace",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Yin-Yang Club Main Building Front Path",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Honky Tonk Park Stall Front",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Indoor Swimming Pool Entrance",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Outlaw Beach North",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Ha Dong Jung Road Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Northwest Black Tortoise Road",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Main Building A-11 Entrance",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Academic Information Center A",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Millennium South Overpass Platform",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Street in Front of Gehenna Institute 3",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Archive Entrance",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Frontier Vehicle Repair Shop",
+            "entry_cost": 10,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "暖かな浜辺",
+            "entry_cost": 10,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "万里浜なぎさドライブウェイ・入口",
+            "entry_cost": 10,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "芸術情報館・1番街",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "ワイルドハント・本館広場",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 1,
+            "stage_name": "Abydos Ruins Zone 1",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Cherry Blossom Grounds Building 12",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Penguin Highway Zone 1",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "East Shiny Sand Beach",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "West Araba Beach",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "90-7 Orchid Road",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "White View Beach",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Red Bear Open-Air Bath",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Plum Blossom Path Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "KV Highway Zone 2",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Cherry Blossom Grounds Building 77",
+            "entry_cost": 1,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Chapel Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Behind the Kama-Boko Stage",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Resort Designated Beach Exit",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Back of No.7 Relaxed Road",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "100-Meter Race Track",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Cheering Section West of Scoreboard",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Back of Dream Bread Second Street",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Pleasant Walk, 3rd St.",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Shiratori Boulevard",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Interior Hallway Access Road",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Rikkagaku Street",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Seafood Processing Factory Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Abandoned Training Ground Exit",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Monday Afternoon Express Train",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Ruins Underground B-2",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Shadow Cave Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "1F Public Restroom Passage",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "1F Central Lounge",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Central Plaza East Path",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Park Trail Entrance",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Healing Spa",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Souvenir Sales Booth",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Street in Front of Black Tortoise Promenade",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Uchinada Old Town",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Main Building A-11 Exit",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Science and Technology Center Annex",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Millennium Overpass 11",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Gehenna West Field",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Stadium 1st Base Grandstand Exit",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Frontier Station 11 Exit 5",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "祭りの浜辺・昼",
+            "entry_cost": 10,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "ビーチの休憩施設",
+            "entry_cost": 10,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "シノレア広場・2区",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "ワイルドハント・第1寮棟",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 2,
+            "stage_name": "Abydos Ruins Zone 2",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Fox Market Central Area",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Beluga Market",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "West Shiny Sand Beach",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Araba Slum Area 1",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "6th Southeast Road",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "White View Sand Dune",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Hot Springs Resort No. 58 Bridge",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Plum Blossom Viewing Path",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "D.U. Zone 427",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "East Whale Mouth Beach",
+            "entry_cost": 1,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Cathedral Chapel 1",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Historical Drama No. 1 Exhibition Street",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Resort Trail Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Back of Trinity Fountain Park",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Ball Rolling Track",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "First Ball Field",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Cold Brew Street Side Road",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Gourmet Road Building 249",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Ramini Town East Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Left Corridor Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Eastern Alchemy Society Club Room",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Public Freezer Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "South Songwind Beach",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Tuesday Morning Express Train",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Pigeon Street Entrance",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Camellia Ridge",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "1F Banquet Hall",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "1F East Hallway",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Yin-Yang Club Auditorium Road",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "The Park's Giant Tree Front",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Pool Locker Front",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Food Booth Zone 3",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Kunlun Mountain Junction",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Uwanga Road",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "No. 9 Temporary East Wing Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Millennium Plaza",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Millennium Overpass Fork 3",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Gehenna Institute 2 Entrance",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Stadium 1st Base Grandstand Entrance",
+            "entry_cost": 10,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Frontier Express Freight Train",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "涼やかな波の浜辺",
+            "entry_cost": 10,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "海の家の休憩所",
+            "entry_cost": 10,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "レオパルド第1の橋",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "ワイルドハント・正門通り",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 3,
+            "stage_name": "Closed Station Zone 1",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Fox Market East Street",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Black Mustache Road",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Deception Beach",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Araba Slum Area 3",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "52-9 Chrysanthemum Road",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "White View Lagoon",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Hot Springs Resort No. 227 Bridge",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "South Smooth Rock Road",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "KV Highway Zone 4",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Central District Block 7",
+            "entry_cost": 1,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Cathedral Chapel 2",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Historical Drama No. 4 Exhibition Street",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Resort Trail Exit",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Thump Street",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "100-Meter Hurdle Track",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Second Ball Field",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "7-5 Dark Side Road",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Back of Gourmet Road Building 249",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Ramini Town Access Road",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Right Corridor Inner Path",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Kunlun Mountain Entrance",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Exterior Deck Control Room Entrance",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "North Songwind Beach",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Tuesday Afternoon Express Train",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Pigeon Street Exit",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Black Cloud Mountain Farm Path",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Central Front",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "1F North Hallway",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Garden Cherry Blossom Path",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Park Trail Exit",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Park Entrance",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Helmet Experience Booth",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Hong Jing Road West",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Ha Dong Jung Road Exit",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "No. 9 Temporary East Wing Exit",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "New Material Engineering Building",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Millennium East Overpass Transit",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Gehenna Hall South Street 5th Ave.",
+            "entry_cost": 10,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Stadium Away Section Entrance",
+            "entry_cost": 10,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Silver Line Freight Rally Point",
+            "entry_cost": 10,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "明日を夢見る浜辺",
+            "entry_cost": 10,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "万里浜なぎさドライブウェイ・出口",
+            "entry_cost": 10,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "ヴェニオ中央橋",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "ワイルドハント・本館表通り",
+            "entry_cost": 10,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 4,
+            "stage_name": "Closed Station Zone 2",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Fox Market Southern Outskirts",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Penguin Highway Zone 3",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Sea Urchin Inhabited Area",
+            "entry_cost": 12,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Prefect Team Rescue Training Area",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "3rd Southwest Road",
+            "entry_cost": 12,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "White View Beach Entrance",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Capybara Valley",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Smooth Rock Road",
+            "entry_cost": 12,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Front of the D.U. City Library",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Araba Slum Area 7",
+            "entry_cost": 1,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Cathedral Conference Room",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Mushiqueen Show Room No. 2",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Siesta Beach Entrance",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Front of Loafer Street",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "200-Meter Race Track",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Kivotos Halo Festival Souvenir Shop",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Bright Morning Street 7-3",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Favorite Foods Street, 4th Ave.",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Neighborhood Park Entrance",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Old Corridor Eastern Taxiway",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Plum Blossom Garden",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Inner Breakwater Area",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Old Volleyball Court Entrance",
+            "entry_cost": 15,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Wednesday Morning Express Train",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Ruins Underground F-3",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Campgrounds Outskirts Trash Dump",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "2F Public Restroom Passage",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "1F West Hallway",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Shopping District Alley",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "D.U. Music Instruments Store Entrance",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Lazy River Torrents Zone",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Beach Parasol Area",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Qinglong Street Huo Tui South Road",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Bustling New Town",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "No. 9 Temporary West Wing Entrance",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Finance and Economy Research Center",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Millennium Overpass 7",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Gehenna Institute 2 Exit",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Stadium Premium Section Entrance",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "Gold Line Freight Forwarding Hub",
+            "entry_cost": 15,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "波が静まる浜辺",
+            "entry_cost": 15,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "三浜駅前",
+            "entry_cost": 15,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "芸術情報館・2番街",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "ワイルドハント・美術品商店街の入口",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 5,
+            "stage_name": "PMC Excavation Site 1",
+            "entry_cost": 40,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Hyakkiyako Cherry Blossom Festival Central Square",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Black Dolphin Market",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Jellyfish Inhabited Area",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Slum Restricted Area C",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Gourmet Alley",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "White View Beach",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Capybara Pond",
+            "entry_cost": 12,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Singing Stream",
+            "entry_cost": 12,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "KV Highway Zone 13",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "52-7 Chrysanthemum Road",
+            "entry_cost": 1,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Cathedral Small Auditorium",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Whirlpool Market Street",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Siesta Beach Exit",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "2-5 Dark Street",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "1,000-Meter Starting Point",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Cheering Section East of Scoreboard",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Back of Bright Morning Street 7-3",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Favorite Foods Street, 7th Ave.",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Abandoned Theme Park Back Entrance",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Old Corridor Window",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Shanhaijing Main Street",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Container Deck #2",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Old Volleyball Court Exit",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Wednesday Afternoon Express Train",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Ruins Underground F-4",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Eastern Wandering Forest",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "VIP Meeting Room",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Suspicious 1F Hall",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Museum of Traditions Exhibition Hall",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "D.U. Building 117 Boulevard",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Cafeteria",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Helmet Gangster Chapter Mixer Venue",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Hong Jing Road West",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Rikkagaku Street Taxiway",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "No. 9 Temporary West Wing Exit",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "R&D Technology Hub Main Building",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Millennium Overpass 2",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Gehenna Hall North Street 8th Ave.",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "North Spectator Entrance",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "Gold Line Station 23 Transfer Platform",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "祭りの浜辺・夜",
+            "entry_cost": 15,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "三浜ペンション村・第2棟",
+            "entry_cost": 15,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "シノレア広場・3区",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "ワイルドハント・美術品商店街の裏道",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 6,
+            "stage_name": "PMC Excavation Site 2",
+            "entry_cost": 40,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "[Challenge] vs Hyakkiyako Mouryo Gang!",
+            "entry_cost": 5,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Red Mustache Road",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Thorny Pufferfish Inhabited Area",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Slum Restricted Area F",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "5th Northwest Road",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "East Coastal Sand Beach",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "East Umbrella Liverwort Garden",
+            "entry_cost": 12,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "South Wishing Road",
+            "entry_cost": 12,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "D.U. Shopping District Entrance",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Paradise Event Hall A",
+            "entry_cost": 1,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Cathedral Large Auditorium",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Mushiqueen Show Room No. 3",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Parrot Sound Falls Entrance",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Back of Verdant Park",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "4x400-Meter Relay Track",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Bizarre Food Eating Competition Special Stage",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Small Miracle Street, 1st Ave.",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Red Pinwheel Road 2-4",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Kanesaki Port Back Alley",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Secret Passage Southern Entrance",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Qinglong Street Huo Tui West",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Dock Pontoon Front",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Relaxing Shore",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Thursday Morning Express Train",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Behind National Highway 33-1",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Forbidden Climbing Zone 1-3",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "2F Banquet Hall",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Suspicious 1F Cabin",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Tree of Deities Plaza Backroad",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "D.U. Music Instruments Store Exit",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Giant Wave Pool East",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Flappy Helmet Gangster Rest Area",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Sandy Street Central Road",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Plaster Alley",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Occupied Annex 31 Entrance",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Student Center 2",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Millennium Skyscraper No. 6",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "5th Terminal Entrance Road",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "South Spectator Entrance",
+            "entry_cost": 15,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Green Line Transit Train Upper Level",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "静寂がささやく浜辺",
+            "entry_cost": 15,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "三浜村・役所前",
+            "entry_cost": 15,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "レオパルド第2の橋",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "ワイルドハント・第3歩道橋の北端",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 7,
+            "stage_name": "Closed Station Transfer Area",
+            "entry_cost": 80,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Shark Boulder Area",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Araba Beach Central Area",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "North Black Tortoise Road",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "West Coastal Sand Beach",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "West Willow Moss Garden",
+            "entry_cost": 12,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Wishing Road",
+            "entry_cost": 12,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "KV Highway Zone 26",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "D.U. Zone 1",
+            "entry_cost": 1,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Cathedral Storage Room",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Mushiqueen Tourney Final Stage",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Parrot Sound Falls Exit",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Loafer Street",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "400-Meter Race Track",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Kivotos Halo Festival Equipment Maintenance Room",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Small Miracle Street, 4th Ave.",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Road in Front of Donut Shop",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Kanesaki Port Reconstruction Area 5",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Parlor Entrance",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Qinglong Street Huo Tui East",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Seafood Processing Factory Back Door",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Lively Shore",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Thursday Afternoon Express Train",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Behind National Highway 33-2",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Crescent Moon Observatory Path",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Guest Room Path",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Suspicious 1F Dining Hall",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Tourist Cable Car Connection",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "D.U. No. 8 Shopping Center Front",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Giant Wave Pool West",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Prickly Helmet Gangster Rest Area",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Yewonro North Street",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Silksand West Trail",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Occupied Annex 31 Center",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Fusion Information Center B",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Millennium West Helipad",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Street in Front of Gehenna School Lunch Club Cafeteria",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Stadium Home Team Cheering Section Entrance",
+            "entry_cost": 15,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Blue Line Intersection Hub",
+            "entry_cost": 15,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "歓声響く浜辺",
+            "entry_cost": 15,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "三浜村・市場通り",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "ヴェニオ南橋",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "ワイルドハント・第3歩道橋の南端",
+            "entry_cost": 15,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 8,
+            "stage_name": "Closed Station Maintenance",
+            "entry_cost": 80,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Seaweed Beach",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "North Araba Slum Street",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Black Bamboo Stroll Path",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Edge of the Coastal Sand Beach",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Elm Tree Bath",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "North Wishing Road",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "D.U. Stop 7",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Cathedral Confessional",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "In Front of the Whirlpool Souvenir Shop",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Starlight Waves Seaside",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "No. 7 Street",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Basketball Team Clubhouse",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Bread-Eating Race Track",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "D.U. East Street, 3rd Ave.",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "West Pelican Bakery Street",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Plato Avenue North Boulevard",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Secret Passage Northern Entrance",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Genryumon Taige Pavilion",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Abandoned Fishing Gear Freight Station",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Deserted Island Dock East",
+            "entry_cost": 20,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Friday Morning Express Train",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Ruins Underground G-5",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Mistletoe Ridge",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Banquet Hall Central East Hallway",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Desolate 2F Hall",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Fox Market West Street",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Park Vending Machine Front",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Aqua Slide Entrance",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Outdoor Stage Seat Section A",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Bustling Development District",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "South Seaway Bike Trail",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Occupied Annex 31 Exit",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Bioscience Building",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Millennium Beltway 8",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Club Hall 3 Corridor",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Coach Room Passage",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Blue Line Freight Station 14",
+            "entry_cost": 20,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "透き通る波の浜辺",
+            "entry_cost": 20,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "プライベートビーチ・駐車場",
+            "entry_cost": 20,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "ネモギャラリー・3番街",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "ワイルドハント・彫刻公園の入口",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 9,
+            "stage_name": "Ruined Submerged District Zone 1",
+            "entry_cost": 80,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Green Laver Beach",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "East Araba Beach",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "South Black Tortoise Road",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Cherry Tree Bath",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Sky Wind Creek",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "KV Highway Zone 37",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Cathedral Waiting Room",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "In Front of the Whirlpool Film Studio",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Starlight Waves Beach",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "2-1 Dark Street",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Locker Room Zone Rear Passage",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Kivotos Halo Festival After-Party Stage",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Cafe Street Building 228",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "East Horizon Tree Street",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Tri-Square South Street",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Dining Room Connecting Passage",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Black Tortoise Promenade Main Restaurant",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Outer Breakwater Area",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Deserted Island Dock West",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Friday Afternoon Express Train",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Ruins Underground G-6",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Campground No. 5 Trail Entrance",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Banquet Hall Hallway",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Desolate 2F Cabin",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Cherry Blossom Grounds Building 8",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Park Plaza of Encounters Entrance",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Aqua Slide Exit",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Outdoor Stage Seat Section B",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Street Behind Genryumon",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Hae Hwe West Path",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Forgotten Annex 4 Entrance",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Technology Innovation Center Annex",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Millennium Skyscraper No. 8",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Supply Storage Entrance Road",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Stadium Display Board East Cheering Section",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Route 11 Express Platform",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "百夜堂出張版！海の家",
+            "entry_cost": 20,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "ティーパーティー別荘・本館前",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "ドゥオーモ広場・7番街",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "ワイルドハント・彫刻公園の奥",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 10,
+            "stage_name": "Ruined Submerged District Zone 2",
+            "entry_cost": 80,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Blue Crab Beach",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Red Mushroom Stroll Path",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "VIP Guest Trail",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Sunrise Mountain Northern Road",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "D.U. Subway Exit",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Cathedral Staff Room",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Director Shiba Dog Memorial Hall",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Riverside Wooden Bridge Entrance",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Front of Verdant Park",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Volleyball Team Clubhouse",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Stadium Small Tool Storage",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "D.U. West Street, 1st Ave.",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Commercial District 8-2",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Tri-Square 2-7",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Library Passage",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Hong Jing Road North",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "No Fishing Zone 4-1",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Undiscovered Beach",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Saturday Morning Express Train",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "D.U. Road 177-4",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "White Deer Peak",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Pandemonium Society Lounge",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Desolate 2F Lobby",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Raccoon Grounds Building 5",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Park Plaza of Encounters Exit",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Palm Tree Garden Zone 5",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Water Gun Rental Station Entrance",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Peach Blossom Spring Front Path",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Northeast Peach Blossom Spring Road",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Forgotten Outer Annex 4 Exit",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Sport Rehabilitation Research Room",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Millennium Roof Garden 21",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Medical Emergency Club Urgent Route",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "1st Base Warning Track Fence Section",
+            "entry_cost": 20,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "Red Line Express Freight Train",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "笑顔あふれる浜辺",
+            "entry_cost": 20,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "プライベートビーチ・マリーナ",
+            "entry_cost": 20,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "オクルス歩道橋",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 11,
+            "stage_name": "廃材処理場進入路",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Beach by Vista Point",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "In Front of Black Tortoise Promenade Office",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Bamboo Recreation Center",
+            "entry_cost": 15,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Plum Blossom Viewing Path Exit",
+            "entry_cost": 15,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "KV Highway Zone 43",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Trinity Cathedral Exit",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Allied Hyakkiyako Academy Promo Street",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Riverside Wooden Bridge Exit",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Desolate Street 10",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Front of Fitness Verification Center",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Stadium Heavy Equipment Storage",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Cafe Street 9-3 Ave.",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Snack Street North Road",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Shiratori City Building 327",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Old Gallery",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Sandy Street Entrance",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Fishing Zone 5-1",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "End of the Undiscovered Beach",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Saturday Afternoon Express Train",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "D.U. Road 177-3",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Alligator Peak",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Rooftop Terrace Passage",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "2F South Hallway",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Academy Promotion Stage",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Thug-Occupied Park Area",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Main Pool",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Game Booth Area",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Bamboo Forest Road",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Kunlun Mountain Bypass",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Abandoned Temporary South Wing",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Precision Machine System Research Building",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Millennium North Helipad",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Gehenna Student Square",
+            "entry_cost": 20,
+            "armor_type": "burst"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Stadium Food Corner Corridor",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "Central Freight Forwarding Base",
+            "entry_cost": 20,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "ヤドカリが眠る浜辺",
+            "entry_cost": 20,
+            "armor_type": "shock"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "ティーテーブルが置かれたビーチ",
+            "entry_cost": 20,
+            "armor_type": "pierce"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "アピケレ北橋",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        },
+        {
+            "stage_index": 12,
+            "stage_name": "ワイルドハント・第7排水路",
+            "entry_cost": 20,
+            "armor_type": "mystic"
+        }
+    ]
+}
