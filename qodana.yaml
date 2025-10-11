@@ -10,3 +10,4 @@ bootstrap: |
   python -m venv /data/project/.venv
   . /data/project/.venv/bin/activate
   pip install -r requirements-linux.txt
+  pip install -r deploy/installer/requirements.installer.txt
