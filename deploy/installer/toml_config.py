@@ -1,10 +1,7 @@
 import os
-import tomli_w
+import tomllib
 
-try:
-    import tomllib
-except ModuleNotFoundError:
-    import tomli as tomllib
+import tomli_w
 
 
 class TOML_Config:
