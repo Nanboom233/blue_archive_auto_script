@@ -21,7 +21,7 @@ jobs:
       - name: 'Qodana Scan'
         uses: JetBrains/qodana-action@v2025.2
         with:
-          pr-mode: false
+          pr-mode: true
           args: |
             --linter,jetbrains/qodana-python-community:2025.2
         env:
