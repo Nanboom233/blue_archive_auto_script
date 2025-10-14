@@ -7,7 +7,5 @@ exclude:
     paths:
       - gui
 bootstrap: |
-  ls
-  ls .venv
   pip install -r requirements-linux.txt
   pip install -r deploy/installer/requirements.installer.txt
