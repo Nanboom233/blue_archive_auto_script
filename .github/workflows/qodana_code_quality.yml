@@ -18,14 +18,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-      - name: List all environments including venv
-        run: |
-          echo "Listing all environments (including venv) in the workspace:"
-          ls -al
-          if [ -d "venv" ]; then
-            echo "Found venv directory:"
-            ls -al venv
-          fi
       - name: 'Qodana Scan'
         uses: JetBrains/qodana-action@v2025.2
         with:
