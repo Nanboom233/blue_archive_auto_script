@@ -8,3 +8,4 @@ exclude:
       - gui
 bootstrap: |
   pip install -r requirements-linux.txt
+  pip install -r deploy/installer/requirements.installer.txt
