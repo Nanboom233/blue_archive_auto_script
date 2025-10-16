@@ -3,8 +3,8 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: # Specify your branches here
-      - qodana # The 'qodana' branch
+    branches:
+      - ci/qodana-manual-trigger
 
 jobs:
   qodana:
