@@ -5,6 +5,7 @@ from core import image, picture, Baas_thread, color
 from core.image import swipe_search_target_str
 from module import main_story
 
+
 # Functions related to navigation or obtaining map data
 # 与导航或获取地图数据相关的函数
 def to_region(self, region: int, isNormal: bool) -> bool:
@@ -111,6 +112,7 @@ def to_normal_event(self: Baas_thread, skip_first_screenshot=False):
         'normal_task_fight-confirm': (1168, 659),
         'normal_task_fight-complete-confirm': (1160, 666),
         'normal_task_reward-acquired-confirm': (800, 660),
+        "normal_task_task-A-info": (1128, 130)
     }
     img_reactions.update(picture.GAME_ONE_TIME_POP_UPS[self.server])
     picture.co_detect(self, rgb_ends, rgb_reactions, None, img_reactions, skip_first_screenshot)
@@ -134,14 +136,9 @@ def get_challenge_state(self, challenge_count=1) -> list[int]:
     """
 
     # to challenge menu
-    challenge_button_y = {
-        'CN': 272,
-        'Global': 302,
-        'JP': 302
-    }
     img_ends = 'normal_task_challenge-menu'
     img_possibles = {
-        "normal_task_challenge-button": (536, challenge_button_y[self.server]),
+        "normal_task_challenge-button": (536,302),
         "activity_quest-challenge-button": (319, 270)
     }
     picture.co_detect(self, None, None, img_ends, img_possibles, True)
@@ -222,13 +219,15 @@ def handle_task_pop_ups(self, skip_first_screenshot=False):
 def get_formation_index(self):
     region = {
         'CN': (116, 542, 131, 570),
-        'Global': (116, 542, 131, 570),
+        'Global_zh-tw': (74, 542, 93, 570),
+        'Global_en-us': (116, 542, 131, 570),
+        'Global_ko-kr': (78, 542, 98, 570),
         'JP': (116, 542, 131, 570)
     }
     handle_task_pop_ups(self)
     ocr_res = self.ocr.get_region_res(
         baas=self,
-        region=region[self.server],
+        region=region[self.identifier],
         language="en-us",
         log_info="Formation Index",
         candidates="1234",
@@ -297,7 +296,7 @@ def execute_grid_task(self, taskData) -> bool:
     img_ends = "normal_task_task-wait-to-begin-feature"
     picture.co_detect(self, None, None, img_ends, img_reactions, True)
 
-    if not employ_units(self, taskData, convert_team_config(self)):
+    if not employ_units(self, self.config.choose_team_method, taskData, convert_team_config(self)):
         return False
 
     # start the mission
@@ -412,13 +411,13 @@ def run_task_action(self, actions):
     self.set_screenshot_interval(self.config.screenshot_interval)
 
 
-def employ_units(self, taskData: dict, teamConfig: dict) -> bool:
-    self.logger.info(f"Employ team method: {self.config.choose_team_method}.")
+def employ_units(self, choose_team_method: str, taskData: dict, teamConfig: dict) -> bool:
+    self.logger.info(f"Employ team method: {choose_team_method}.")
     attribute_type_fallbacks = {"burst": "mystic", "mystic": "shock", "shock": "pierce", "pierce": "burst"}
 
-    employ_pos: list[list[int, int]] = []
+    employ_pos: list[list[int]] = []
 
-    if self.config.choose_team_method == "order":
+    if choose_team_method == "order":
         # give employ pos a fallback value to let it employ formations by order(from 1-4)_
         employ_pos = [[0, 1], [0, 2], [0, 3], [0, 4]]
     else:
@@ -432,10 +431,11 @@ def employ_units(self, taskData: dict, teamConfig: dict) -> bool:
         total_available = sum([len(preset) for attribute, preset in teamConfig.items()])
 
         unit_need = len([attribute for attribute, info in taskData["start"] if attribute != "swipe"])
-        if total_available <= unit_need:
+        if total_available < unit_need:
             self.logger.error(
                 f"Employ failed: Insufficient presets. Currently used: {unit_need}, total available: {total_available}")
-            return False
+            self.logger.warning("Try using 'order' method to employ team.")
+            return employ_units(self, "order", taskData, teamConfig)
 
         for attribute, info in taskData["start"]:
             if attribute == "swipe":  # skip if it's a swipe command.
@@ -444,7 +444,7 @@ def employ_units(self, taskData: dict, teamConfig: dict) -> bool:
             # switch to the next attribute available.
             cur_attribute = attribute
             while unit_available[cur_attribute] == unit_used[cur_attribute] \
-                    or (self.server == "CN" and cur_attribute == "shock"):
+                or (self.server == "CN" and cur_attribute == "shock"):
                 cur_attribute = attribute_type_fallbacks[cur_attribute]
 
             employ_pos.append(teamConfig[cur_attribute][unit_used[cur_attribute]])

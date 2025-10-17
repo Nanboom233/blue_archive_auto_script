@@ -9,12 +9,22 @@ from core.exception import RequestHumanTakeOver, FunctionCallTimeout, PackageInc
 from module.main_story import set_acc_and_auto
 
 
-def co_detect(self: Baas_thread, rgb_ends: typing.Union[list[str], str] = None, rgb_reactions: dict = None,
-              img_ends: typing.Union[list, str, tuple] = None, img_reactions: dict = None,
-              skip_first_screenshot=False,
-              tentative_click=False, tentative_x=1238, tentative_y=45, max_fail_cnt=10,
-              pop_ups_rgb_reactions: dict = None, pop_ups_img_reactions: dict = None,
-              time_out=600, check_pkg_interval=20):
+def co_detect(
+            self: Baas_thread,
+            rgb_ends: typing.Union[list[str], str] = None,
+            rgb_reactions: dict = None,
+            img_ends: typing.Union[list, str, tuple] = None,
+            img_reactions: dict = None,
+            skip_first_screenshot=False,
+            tentative_click=False,
+            tentative_x=1238,
+            tentative_y=45,
+            max_fail_cnt=10,
+            pop_ups_rgb_reactions: dict = None,
+            pop_ups_img_reactions: dict = None,
+            time_out=600,
+            check_pkg_interval=20
+    ):
     """
         Detects specific RGB or image features on the screen and performs actions based on the detection.
 
@@ -69,13 +79,14 @@ def co_detect(self: Baas_thread, rgb_ends: typing.Union[list[str], str] = None, 
             raise FunctionCallTimeout("Co_detect function timeout reached.")
 
         # package check
-        if (current_time - feature_last_appear_time > check_pkg_interval
-            and current_time - last_check_pkg_time > check_pkg_interval):
-            last_check_pkg_time = current_time
-            pkgName = self.connection.get_current_package()
-            self.logger.info(f"Current package name: {pkgName}")
-            if pkgName != self.package_name:
-                raise PackageIncorrect(pkgName)
+        if self.is_android_device:
+            if (current_time - feature_last_appear_time > check_pkg_interval
+                and current_time - last_check_pkg_time > check_pkg_interval):
+                last_check_pkg_time = current_time
+                pkgName = self.connection.get_current_package()
+                self.logger.info(f"Current package name: {pkgName}")
+                if pkgName != self.package_name:
+                    raise PackageIncorrect(pkgName)
 
         # loading check
         color.wait_loading(self)
@@ -265,6 +276,8 @@ GAME_ONE_TIME_POP_UPS = {
         'main_page_item-expired-notice': (922, 159),
         'main_page_item-expiring-notice': (931, 132),
         'main_page_Failed-to-convert-errorResponse': (641, 511),
+        'main_page_Failed-to-receive-Platform-Steam-GetEntitlementsAsJsonArray': (641, 511),
+        'main_page_Failed-to-request-prices': (641, 511),
         'draw-card-point-exchange-to-stone-piece-notice': (933, 155)
     }
 }

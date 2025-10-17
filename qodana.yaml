@@ -1,0 +1,11 @@
+version: "1.0"
+profile:
+  name: qodana.recommended
+linter: qodana-python-community:2025.2
+exclude:
+  - name: All
+    paths:
+      - gui
+bootstrap: |
+  pip install -r requirements-linux.txt
+  pip install -r deploy/installer/requirements.installer.txt

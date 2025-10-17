@@ -119,7 +119,7 @@ class Main:
 if __name__ == '__main__':
     ocr_needed = ["en-us"]
     INSTANCE = Main(ocr_needed=ocr_needed)
-    config = ConfigSet(config_dir="1708232489")
+    config = ConfigSet(config_dir="default_config")
     bThread = Baas_thread(config, None, None, None)
     bThread.set_ocr(INSTANCE.ocr)
     bThread.init_all_data()
@@ -137,12 +137,11 @@ if __name__ == '__main__':
     # exit(0)
     # bThread.thread_starter()
     # bThread.solve("refresh_uiautomator2")
-    # bThread.solve("explore_activity_challenge")
     # bThread.solve("activity_sweep")
     # bThread.solve("tactical_challenge_shop")
     # bThread.solve("explore_activity_mission")
     # bThread.solve("explore_activity_story")
-    bThread.solve("common_shop")
+    # bThread.solve("common_shop")
     # bThread.solve("total_assault")
     # bThread.solve("cafe_reward")
     # bThread.solve("momo_talk")
@@ -164,4 +163,6 @@ if __name__ == '__main__':
     # bThread.solve("create")
     # bThread.solve("dailyGameActivity")
     # bThread.solve("friend")
-    bThread.solve("joint_firing_drill")
+    # bThread.solve("joint_firing_drill")
+    # bThread.solve("storage_check")
+    pass

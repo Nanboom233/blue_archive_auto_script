@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import stat
+import time
+
+import pygit2
 
 # ==================== Welcome Message ====================
 print(
@@ -30,12 +34,15 @@ print(
 # ==================== Import Statements ====================
 
 import os
+import gc
 import re
-import platform
-import shutil
-import subprocess
 import sys
+import shutil
 import zipfile
+import tempfile
+import platform
+import subprocess
+from enum import Enum, auto
 from pathlib import Path
 
 import psutil
@@ -44,16 +51,17 @@ import requests
 import tomli_w
 from copy import deepcopy
 from alive_progress import alive_bar
-from dulwich import porcelain
-from dulwich.repo import Repo
+# from dulwich import porcelain
+# from dulwich.repo import Repo
 from easydict import EasyDict as eDict
 from halo import Halo
 from loguru import logger
 
-try:
-    import tomllib
-except ModuleNotFoundError:
-    import tomli as tomllib
+from pygit2 import clone_repository, Repository, RemoteCallbacks, GIT_RESET_HARD, GitError
+
+from toml_config import TOML_Config
+from mirrorc_update.mirrorc_updater import MirrorC_Updater
+from const import GetShaMethod, get_remote_sha_methods, REPO_BRANCH
 
 __system__ = platform.system()
 __env__ = os.environ.copy()
@@ -66,6 +74,10 @@ os.environ["PDM_IGNORE_ACTIVE_VENV"] = "1"
 
 DEFAULT_SETTINGS = {
     "General": {
+        "mirrorc_cdk": "",
+        "current_BAAS_version": "",
+        "current_BAAS_Cpp_version": "",
+        "get_remote_sha_method": "",
         "dev": False,
         "refresh": False,
         "launch": False,
@@ -104,7 +116,110 @@ DEFAULT_SETTINGS = {
 }
 
 
+repo = None
+# local version
+local_sha = None
+# latest version
+remote_sha = None
+update_type = None
+mirrorc_cdk = None
+latest_mirrorc_return = None
+mirrorc_inst = MirrorC_Updater(app="BAAS_repo", current_version="")
+
+
 class Utils:
+
+    @staticmethod
+    def on_rm_error(func, path, exc_info):
+        try:
+            os.chmod(path, stat.S_IWUSR)
+            func(path)
+        except Exception as e:
+            pass
+
+    @staticmethod
+    def mirrorc_api_get_latest_sha():
+        global mirrorc_inst
+        global mirrorc_cdk
+        global latest_mirrorc_return
+        try:
+            latest_mirrorc_return = mirrorc_inst.get_latest_version(cdk=mirrorc_cdk)
+            if latest_mirrorc_return.has_data:
+                return latest_mirrorc_return.latest_version_name
+            else:
+                logger.error(f"[MirrorC Api] get SHA error: {latest_mirrorc_return.message}")
+        except Exception as e:
+            logger.error(f"[MirrorC Api] get SHA error: {e}")
+            return None
+
+    @staticmethod
+    def github_api_get_latest_sha(data):
+        owner = data["owner"]
+        repo = data["repo"]
+        branch = data["branch"]
+        url = f"https://api.github.com/repos/{owner}/{repo}/branches/{branch}"
+        try:
+            response = requests.get(url, timeout=3.0)
+            if response.status_code != 200:
+                return None
+            response_json = response.json()
+            return response_json.get("commit", {}).get("sha")
+        except requests.RequestException as e:
+            logger.warning(f"[Github Api] get SHA error: {e}")
+            return None
+
+    @staticmethod
+    def pygit2_get_latest_sha(data):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            repo = pygit2.init_repository(tmp_dir, bare=True)
+
+        url = data["url"]
+        branch = data["branch"]
+        remote = repo.remotes.create_anonymous(url)
+        try:
+            remote_refs = remote.ls_remotes()
+        except pygit2.GitError as e:
+            logger.warning(f"[PyGit2] get SHA error: {e}")
+            return None
+        target_ref = f"refs/heads/{branch}"
+        for ref in remote_refs:
+            if ref["name"] == target_ref:
+                return str(ref["oid"])
+        return None
+
+    @staticmethod
+    def get_remote_sha():
+        logger.info("<<< Get Remote SHA >>>")
+        if G.get_remote_sha_method:
+            index = next(
+                (i for i, item in enumerate(get_remote_sha_methods) if item.get("name") == G.get_remote_sha_method),
+                None)
+            if index is not None:
+                sha = Utils.get_remote_sha_once(get_remote_sha_methods[index])
+                if sha is not None:
+                    return sha
+                get_remote_sha_methods.pop(index)
+        for method in get_remote_sha_methods:
+            sha = Utils.get_remote_sha_once(method)
+            if sha is not None:
+                logger.info(f"Set get remote SHA method --> [ {method['name']} ]")
+                config.set_and_save("General.get_remote_sha_method", method["name"])
+                return sha
+        logger.error("Failed to get remote SHA from all methods.")
+        raise Exception("Failed to get remote SHA.")
+
+    @staticmethod
+    def get_remote_sha_once(method):
+        logger.info(f"[ {method['name']} ] get latest SHA.")
+        if method["method"] == GetShaMethod.GITHUB_API:
+            return Utils.github_api_get_latest_sha(method)
+        elif method["method"] == GetShaMethod.PYGIT2:
+            return Utils.pygit2_get_latest_sha(method)
+        elif method["method"] == GetShaMethod.MIRRORC_API:
+            return Utils.mirrorc_api_get_latest_sha()
+        else:
+            return None
+
     @staticmethod
     def download_file(url: str, parent_path: Path) -> Path:
         filename = url.split("/")[-1]
@@ -114,7 +229,7 @@ class Utils:
         total_size = int(response.headers.get("Content-Length", 0))
 
         with alive_bar(
-            total_size, unit="B", bar="smooth", title=f"Downloading {filename} "
+                total_size, unit="B", bar="smooth", title=f"Downloading {filename} "
         ) as progress_bar:
             with open(file_path, "wb") as download_f:
                 for chunk in response.iter_content(chunk_size=1024):
@@ -132,12 +247,24 @@ class Utils:
         with zipfile.ZipFile(zip_dir, "r") as zip_ref:
             # Unzip all files to the current directory
             zip_ref.extractall(path=out_dir)
-            logger.success(f"{zip_dir} unzip success, output files in {out_dir}")
+            logger.success(f"{zip_dir} unzip success.")
+            logger.success(f"output --> {out_dir}")
 
     @staticmethod
     def sudo(cmd, pwd):
         os.system(f"echo {pwd} | sudo -S {cmd}")
 
+    @staticmethod
+    def copy_directory_structure(source: Path, target: Path):
+        target.mkdir(parents=True, exist_ok=True)
+        for item in source.iterdir():
+            relative_path = item.relative_to(source)
+            target_path = target / relative_path
+            if item.is_dir():
+                target_path.mkdir(exist_ok=True)
+                Utils.copy_directory_structure(item, target_path)
+            elif item.is_file():
+                shutil.copy2(item, target_path)
 
 # ==================== System check ====================
 if __system__ not in ["Windows", "Linux"]:
@@ -173,20 +300,35 @@ if not config_file.exists():
             pwd = getpass.getpass("Please enter your password: ")
             DEFAULT_SETTINGS["General"]["linux_pwd"] = pwd
         tomli_w.dump(DEFAULT_SETTINGS, file)
-    config = DEFAULT_SETTINGS
-else:
-    # Load the configuration file
-    with open(config_file, "rb") as file:
-        config = tomllib.load(file)
+# Load the configuration file
+with open(config_file, "rb") as file:
+    config = TOML_Config(config_file)
 
-G = eDict(config["General"])
-U = eDict(config["URLs"])
-P = eDict(config["Paths"])
+config_modified = False
+
+def insert_new_config(cfg, new):
+    global config_modified
+    for key, value in new.items():
+        if key not in cfg:
+            config_modified = True
+            cfg[key] = value
+        if isinstance(value, dict):
+            insert_new_config(cfg[key], value)
+
+insert_new_config(config.config, DEFAULT_SETTINGS)
+if config_modified:
+    config.save()
+
+G = eDict(config.get("General"))
+U = eDict(config.get("URLs"))
+P = eDict(config.get("Paths"))
 
 BAAS_ROOT_PATH = Path(P.BAAS_ROOT_PATH).resolve() if P.BAAS_ROOT_PATH else "" or BASE_PATH
 G.runtime_path = G.runtime_path.replace("\\", "/")
 P.TMP_PATH = BAAS_ROOT_PATH / Path(P.TMP_PATH)
 P.TOOL_KIT_PATH = BAAS_ROOT_PATH / Path(P.TOOL_KIT_PATH)
+mirrorc_cdk = G.mirrorc_cdk
+
 if P.BAAS_ROOT_PATH and not os.path.exists(P.BAAS_ROOT_PATH):
     os.makedirs(P.BAAS_ROOT_PATH)
 if not os.path.exists(P.TMP_PATH):
@@ -304,8 +446,8 @@ def install_package():
             env_pip_exec = [str(python_exec_file), '-m', 'pip']
 
             if (
-                not os.path.exists(BAAS_ROOT_PATH / ".venv")
-                and G.package_manager == "pip"
+                    not os.path.exists(BAAS_ROOT_PATH / ".venv")
+                    and G.package_manager == "pip"
             ):
                 # Install virtualenv package
                 cmd_list = ["install", "virtualenv", "--no-warn-script-location"]
@@ -334,7 +476,7 @@ def install_package():
             [
                 "install",
                 "-r",
-                str(BAAS_ROOT_PATH / "requirements.txt"),
+                str(BAAS_ROOT_PATH / "requirements-windows.txt"),
                 "--no-warn-script-location",
             ],
         )
@@ -406,7 +548,7 @@ def start_app():
 
 def run_app():
     logger.info("Start to run the app...")
-    try:  # 记录启动时的pythonw的pid
+    try:  # record pid
         with open(BAAS_ROOT_PATH / "pid", "a+") as f:
             f.seek(0)
             try:
@@ -417,7 +559,7 @@ def run_app():
                 if not G.force_launch:
                     logger.info(
                         "App already started. Killing."
-                    )  # 如果上一次的BAAS已经启动，就关闭
+                    )  # close existing BAAS
                     p = psutil.Process(last_pid)
                     try:
                         p.terminate()
@@ -457,7 +599,7 @@ def run_app():
                 )
 
             if os.path.exists(BAAS_ROOT_PATH / "backup.exe") and not os.path.exists(
-                BAAS_ROOT_PATH / "no_build"
+                    BAAS_ROOT_PATH / "no_build"
             ):
                 create_executable()
                 logger.info("try to remove the backup executable file.")
@@ -645,62 +787,225 @@ def fix_exe_shebangs(search_dir=".venv\\Scripts"):
         logger.info("No matching shebangs were found in .exe files.")
 
 
-def check_git():
-    if G.dev:
-        return
-    logger.info("Checking git installation...")
-    if not os.path.exists(BAAS_ROOT_PATH / ".git"):
-        logger.info("+--------------------------------+")
-        logger.info("|         INSTALL BAAS           |")
-        logger.info("+--------------------------------+")
-        spinner.start("Cloning the repository...")
-        porcelain.clone(U.REPO_URL_HTTP, BAAS_ROOT_PATH)
-        spinner.succeed("Clone completed.")
-        logger.success("Install success!")
-    else:
-        logger.info("+--------------------------------+")
-        logger.info("|          UPDATE BAAS           |")
-        logger.info("+--------------------------------+")
-        repo = Repo(str(BAAS_ROOT_PATH))
+class BAASGitCallbacks(RemoteCallbacks):
+    def __init__(self, bar_ref):
+        self.__transmitted = False
+        self.bar_ref = bar_ref
+        self.received_count = 0
+        self.current_count = 0
+        self.spinner = Halo(text="Resolving Objects ...", spinner="dots")
+        super().__init__()
 
-        # Get local SHA
-        try:
-            local_sha = repo.head().decode("ascii")
-        except:
-            logger.error("Incorrect Key. Trying to reinstall...")
-            shutil.rmtree(BAAS_ROOT_PATH / ".git")
-            check_git()
-            return
+    def transfer_progress(self, stats):
+        if not self.__transmitted:
+            self.__transmitted = True
+            # Create the progress bar generator
+            bar_gen = alive_bar(stats.total_objects, title="Cloning repository...")
+            self.bar_ref["bar_gen"] = bar_gen
+            self.bar_ref["bar"] = bar_gen.__enter__()  # Enter the context
 
-        # Get remote SHA
-        remote_refs = porcelain.ls_remote(U.REPO_URL_HTTP)
-        remote_sha = remote_refs.get(b"refs/heads/master").decode("ascii")
+        if self.bar_ref.get("bar"):
+            self.received_count = stats.received_objects
+            self.bar_ref["bar"](self.received_count - self.current_count)  # Advance the progress bar by one
+            self.current_count = self.received_count
 
-        logger.info(f"remote_sha: {remote_sha}")
-        logger.info(f"local_sha: {local_sha}")
+        if self.received_count == stats.total_objects:
+            self.bar_ref["bar_gen"].__exit__(None, None, None)
+            self.spinner.start()
 
-        refresh_required = G.refresh
-        if local_sha == remote_sha and not refresh_required:
-            logger.info("No updates available")
-        else:
-            if refresh_required:
-                logger.info(
-                    "You've selected dropping all changes for the project file."
-                )
-            spinner.start("Pulling updates from the remote repository...")
-            # Reset the local repository to the state of the remote repository
-            porcelain.reset(repo, mode="hard")
-            # Pull the latest changes from the remote repository
-            porcelain.pull(repo, U.REPO_URL_HTTP, "master", protocol_version=0)
-            updated_local_sha = repo.head().decode("ascii")
-            if updated_local_sha == remote_sha:
-                spinner.succeed("Update completed.")
-                logger.success("Update success")
+
+def clone_repo(repo_url, local_path):
+    bar_ref = {"bar": None}
+    callbacks = BAASGitCallbacks(bar_ref)
+    repo = clone_repository(repo_url, local_path, callbacks=callbacks)
+    callbacks.spinner.stop()
+    logger.success("Cloning completed successfully.")
+    return repo
+
+
+def repair_broken_git_repo():
+    global repo
+    del repo
+    # repo = None
+    gc.collect()
+
+    # Remove the existing .git directory
+    git_dir = BAAS_ROOT_PATH / ".git"
+    if git_dir.exists():
+        logger.info("Removing broken Git repository...")
+        shutil.rmtree(git_dir, ignore_errors=True)
+
+    logger.warning("Attempting to repair invalid Git repo...")
+
+    temp_clone_path = BAAS_ROOT_PATH / "temp_clone"
+
+    # Remove any existing temp_clone directory
+    if temp_clone_path.exists():
+        shutil.rmtree(temp_clone_path, ignore_errors=True)
+
+    # Clone the repository to a temporary directory
+    logger.info("Cloning fresh repo to temporary directory...")
+    repo = clone_repo(U.REPO_URL_HTTP, str(temp_clone_path))
+
+    # Release the occupation of the directory
+    del repo
+    # repo = None
+    gc.collect()
+
+    # Move the cloned repository to the desired location
+    for item in temp_clone_path.iterdir():
+        dst = BAAS_ROOT_PATH / item.name
+        if dst.exists():
+            if dst.is_dir():
+                shutil.rmtree(dst, ignore_errors=True)
             else:
-                spinner.fail("Update failed.")
-                logger.warning(
-                    "Failed to update the source code, please check your network or for conflicting files"
-                )
+                dst.unlink()
+        shutil.move(str(item), str(dst))
+
+    shutil.rmtree(temp_clone_path, ignore_errors=True)
+    logger.success("Git repository successfully repaired.")
+
+
+def git_install_baas():
+    logger.info("+--------------------------------+")
+    logger.info("|       GIT INSTALL BAAS         |")
+    logger.info("+--------------------------------+")
+    logger.info("Cloning the repository...")
+    logger.info("Repo URL : " + U.REPO_URL_HTTP)
+    temp_clone_path = BAAS_ROOT_PATH / "temp_clone"
+
+    if temp_clone_path.exists():
+        logger.info("Removing temp_clone directory...")
+        shutil.rmtree(str(temp_clone_path), ignore_errors=False, onerror=Utils.on_rm_error)
+
+    # Clone the repository using pygit2
+    repo = clone_repo(
+        U.REPO_URL_HTTP,
+        str(temp_clone_path),
+    )
+
+    # Release the occupation of the directory
+    del repo
+    # repo = None
+    gc.collect()
+
+    # Move the cloned repository to the desired location
+    Utils.copy_directory_structure(temp_clone_path, BAAS_ROOT_PATH)
+
+    # Remove temporary clone directory
+    shutil.rmtree(str(temp_clone_path), ignore_errors=False, onerror=Utils.on_rm_error)
+    logger.success("Git Install Success!")
+
+
+def check_repo_url(_repo):
+    origin = _repo.remotes["origin"]
+    logger.info("<<< Repo Remote URL >>>")
+    logger.info(origin.url)
+
+    if origin.url != U.REPO_URL_HTTP:
+        original_url = origin.url
+        upstream_backup = {}
+        for branch in _repo.branches.local:
+            local_branch = _repo.lookup_branch(branch)
+            if local_branch.upstream:
+                upstream_backup[branch] = local_branch.upstream.name
+
+        try:
+            logger.info("<<< Switch Repo Remote URL >>>")
+            logger.info(U.REPO_URL_HTTP)
+            _repo.remotes.delete("origin")
+            new_origin = _repo.remotes.create("origin", U.REPO_URL_HTTP)
+            for ref in list(_repo.references):
+                if ref.startswith("refs/remotes/origin/"):
+                    _repo.references.delete(ref)
+            new_origin.fetch()
+            logger.info("Setting remote branches upstream...")
+            for branch in _repo.branches.local:
+                local_branch = _repo.lookup_branch(branch)
+                remote_branch_name = f"origin/{branch}"
+                if remote_branch_name in _repo.branches.remote:
+                    remote_branch = _repo.lookup_branch(
+                        remote_branch_name,
+                        pygit2.GIT_BRANCH_REMOTE
+                    )
+                    local_branch.upstream = remote_branch
+            logger.success("Remote repo url switched.")
+
+        except GitError as e:
+            logger.error(f"Failed to fetch from new origin: {e}")
+            logger.info("<<< Rolling back to original URL >>>")
+
+            try:
+                # 删除失败的新origin
+                _repo.remotes.delete("origin")
+
+                # 恢复原始远程
+                restored_origin = _repo.remotes.create("origin", original_url)
+
+                # 重新获取原始仓库数据
+                restored_origin.fetch()
+
+                # 恢复上游分支设置
+                for branch, upstream_ref in upstream_backup.items():
+                    local_branch = _repo.lookup_branch(branch)
+                    # 确保远程分支引用存在
+                    if upstream_ref in _repo.references:
+                        remote_branch = _repo.lookup_branch(
+                            upstream_ref.replace("refs/remotes/", ""),
+                            pygit2.GIT_BRANCH_REMOTE
+                        )
+                        local_branch.upstream = remote_branch
+
+                logger.success("Successfully reverted to original repository URL")
+
+            except Exception as rollback_error:
+                logger.critical(f"Critical error during rollback: {rollback_error}")
+                raise RuntimeError("Repository recovery failed") from rollback_error
+
+def git_update_baas():
+    global local_sha
+    global remote_sha
+    global repo
+    logger.info("+--------------------------------+")
+    logger.info("|        GIT UPDATE BAAS         |")
+    logger.info("+--------------------------------+")
+    try:
+        repo = Repository(str(BAAS_ROOT_PATH))
+        check_repo_url(repo)
+        refresh_required = G.refresh
+        if refresh_required:
+            logger.info("You've selected dropping all changes for the project file.")
+
+        spinner.start("Pulling updates from the remote repository...")
+
+        # Fetch updates from the remote repository
+        remote = repo.remotes["origin"]
+        remote.fetch(callbacks=BAASGitCallbacks({"bar": None}))
+        del remote
+        gc.collect()
+
+        # Reset local branch to remote
+        repo.reset(repo.lookup_reference(f"refs/remotes/origin/{REPO_BRANCH}").target, GIT_RESET_HARD)
+
+        # Checkout to master (HEAD points to refs/heads/master)
+        repo.checkout(f"refs/heads/{REPO_BRANCH}")
+        # str(repo.references.get("refs/remotes/origin/master").target)
+        local_sha = str(repo.head.target)
+        if local_sha == remote_sha:
+            spinner.succeed("Update completed.")
+            logger.success("Git Update Success")
+        else:
+            spinner.fail("Failed to update the source code to latest version.")
+            logger.warning("Possible reason is your current update source haven't updated to latest.")
+            logger.warning("If you constantly encounter this issue, please try to use another update source like github.")
+    except GitError as e:
+        if "not owned by current user" in str(e):
+            logger.error(f"Git repo ownership error: {e}")
+            if repo: del repo
+            repair_broken_git_repo()
+        else:
+            logger.error(f"Unhandled Git error: {e}")
+            raise
 
 
 def dynamic_update_installer():
@@ -720,9 +1025,9 @@ def dynamic_update_installer():
 
     # Check if paths exist and arguments are provided
     if (
-        os.path.exists(installer_path)
-        and os.path.exists(python_path)
-        and len(sys.argv) > 1
+            os.path.exists(installer_path)
+            and os.path.exists(python_path)
+            and len(sys.argv) > 1
     ):
         try:
             subprocess.run(launch_exec_args)
@@ -760,11 +1065,167 @@ def pre_check():
             check_pip()
         check_pth()
         check_env_patch()
-    check_git()
+
+    install_or_update_BAAS_repo_to_latest()
     check_requirements()
     if __system__ == "Windows":
         fix_exe_shebangs()
 
+
+def get_update_type():
+    global repo
+    global local_sha
+    global remote_sha
+    global update_type
+    local_sha = G.current_BAAS_version
+    if len(local_sha) == 0:
+        if os.path.exists(BAAS_ROOT_PATH / ".git"):
+            repo = Repository(str(BAAS_ROOT_PATH))
+            # Get local SHA
+            try:
+                local_sha = str(repo.head.target)
+            except Exception as e:
+                logger.error(f"Incorrect Key or corrupted repo: {e}. Remove [ .git ] folder and reinstall.")
+                del repo
+                # repo = None
+                update_type = "full"
+                gc.collect()
+                shutil.rmtree(BAAS_ROOT_PATH / ".git")
+                return
+        else:
+            # first install
+            update_type = "full"
+            return
+
+    assert (len(local_sha) == 40)
+    mirrorc_inst.set_version(local_sha)
+    remote_sha = Utils.get_remote_sha()
+    assert (len(remote_sha) == 40)
+    logger.info(f"local_sha : {local_sha}")
+    logger.info(f"remote_sha: {remote_sha}")
+    if local_sha == remote_sha:
+        update_type = "latest"
+        return
+    update_type = "incremental"
+    return
+
+
+def install_or_update_BAAS_repo_to_latest():
+    if G.dev:
+        return
+
+    get_update_type()
+
+    global update_type
+    if update_type == "latest":
+        logger.info("No Update Available.")
+        return
+
+    if try_mirrorc_install_or_update():
+        return
+    try_git_install_or_update()
+
+def try_git_install_or_update():
+    global repo
+    global local_sha
+    if os.path.exists(BAAS_ROOT_PATH / ".git"):
+        git_update_baas()
+    else:
+        git_install_baas()
+        repo = Repository(str(BAAS_ROOT_PATH))
+        local_sha = str(repo.head.target)
+    config.set_and_save("General.current_BAAS_version", local_sha)
+
+def try_mirrorc_install_or_update():
+    if not (len(mirrorc_cdk) > 0):
+        return False
+
+    global latest_mirrorc_return
+    global update_type
+    if latest_mirrorc_return is None:
+        latest_mirrorc_return = mirrorc_inst.get_latest_version(cdk=mirrorc_cdk)
+    if not latest_mirrorc_return.has_url:
+        MirrorC_Updater.log_mirrorc_error(latest_mirrorc_return, logger)
+        return False
+    # timestamp to datetime
+    expired_time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(latest_mirrorc_return.cdk_expired_time))
+    logger.success("CDK valid, expired time : " + expired_time_str)
+    if latest_mirrorc_return.latest_version_name == local_sha:
+        logger.info("No Update Available.")
+        return True
+    if update_type == "full":
+        mirrorc_install_baas()
+    elif update_type == "incremental":
+        mirrorc_update_baas()
+
+    if os.path.exists(BAAS_ROOT_PATH / ".git"):
+        logger.info("Removing [ .git ] directory...")
+        shutil.rmtree(BAAS_ROOT_PATH / ".git", ignore_errors=False, onerror=Utils.on_rm_error)
+
+    config.set_and_save("General.current_BAAS_version", latest_mirrorc_return.latest_version_name)
+    return True
+
+def mirrorc_install_baas():
+    logger.info("+--------------------------------+")
+    logger.info("|     MIRRORC INSTALL BAAS       |")
+    logger.info("+--------------------------------+")
+    # Download the repository zip file
+    global latest_mirrorc_return
+    file_MB = latest_mirrorc_return.file_size / (1024 * 1024)
+    logger.info("Downloading the repository zip, total = %.2f MB" % file_MB)
+    zip_path = Utils.download_file(
+        latest_mirrorc_return.download_url, P.TMP_PATH
+    )
+    logger.info("Unzipping the repository...")
+    Utils.unzip_file(zip_path, P.TMP_PATH)
+
+    logger.info("Moving unzipped files to BAAS root path...")
+    file_dir = P.TMP_PATH / "blue_archive_auto_script"
+    Utils.copy_directory_structure(file_dir, BAAS_ROOT_PATH)
+
+    logger.success("Mirrorc Install Success!")
+
+def mirrorc_update_baas():
+    logger.info("+--------------------------------+")
+    logger.info("|      MIRRORC UPDATE BAAS       |")
+    logger.info("+--------------------------------+")
+
+    global latest_mirrorc_return
+
+    # wait for incremental update
+    if latest_mirrorc_return.update_type == "full":
+        logger.info("Current package is [ full ].")
+        logger.info("Waiting for [ incremental ] update package...")
+        max_retry = 10
+        for i in range(1, max_retry+1):
+            time.sleep(0.5)
+            logger.info(f"Retry : {i}/{max_retry}")
+            latest_mirrorc_return = mirrorc_inst.get_latest_version(cdk=mirrorc_cdk)
+            if latest_mirrorc_return.update_type == "incremental":
+                logger.success("Get Incremental Package")
+                break
+
+    if latest_mirrorc_return.update_type == "incremental":
+        logger.info("<<< Incremental Update >>>")
+        file_MB = latest_mirrorc_return.file_size / (1024 * 1024)
+        logger.info("Downloading the incremental zip, total = %.2f MB" % file_MB)
+        zip_path = Utils.download_file(
+            latest_mirrorc_return.download_url, P.TMP_PATH
+        )
+        logger.info("Unzipping the incremental update...")
+        Utils.unzip_file(zip_path, P.TMP_PATH)
+
+        MirrorC_Updater.apply_update(
+            P.TMP_PATH,
+            P.TMP_PATH / "changes.json",
+            BAAS_ROOT_PATH,
+            logger
+        )
+        logger.success("Mirrorc Incremental Update Success!")
+
+    if latest_mirrorc_return.update_type == "full":
+        logger.info("<<< Full Update >>>")
+        mirrorc_install_baas()
 
 if __name__ == "__main__":
     try:
