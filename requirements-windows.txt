@@ -11,5 +11,7 @@ PyAutoGUI~=0.9.54
 uiautomator2~=3.4.2
 psutil~=7.1.0
 tomli==2.3.0
-tomli_w~=1.2.0
+tomli_w==1.2.0
 lxml~=6.0.2
+
+win11toast~=0.36.2
