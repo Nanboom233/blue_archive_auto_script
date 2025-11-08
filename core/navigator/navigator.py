@@ -1,5 +1,7 @@
+import bisect
 import hashlib
 import itertools
+from array import array
 from collections import deque, defaultdict, Counter
 from copy import deepcopy
 from dataclasses import dataclass
@@ -39,12 +41,17 @@ class Index:
     block_volume: int
 
     # 全对下一跳与距离（m 行，n 列；即从 n 去 m 的第一跳）
-    next_hop: list[list[int]]  # next_hop[m][n] = v or -1
-    dist: list[list[int]]  # dist[m][n] = steps or INF (大数)
+    next_hop: list[list[int]]  # 仍保留原始矩阵（可选：后续也可换成 array('h') 进一步省内存）
+    dist: list[list[int]]
 
-    # 压缩（区域默认 + 例外）
-    block_default_hop: list[dict[int, int]]  # per m: {block_id -> hop}
-    exception_hop: list[dict[int, int]]  # per m: {node_id -> hop}
+    # 紧凑列存储（逐列择优）
+    # col_kind[m]==0: 直接列，用 row_direct[m]
+    # col_kind[m]==1: 区域列，用 region_default[m] + exc_nodes[m]/exc_hops[m]
+    col_kind: list[int]  # 0=direct, 1=block
+    row_direct: list[Optional[array]]  # array('h') or None
+    region_default: list[Optional[array]]  # array('h') or None
+    exc_nodes: list[Optional[array]]  # array('h') or None (sorted node ids)
+    exc_hops: list[Optional[array]]  # array('h') or None (aligned with exc_nodes)
 
     # 行为层
     edge_handle: dict[tuple[int, int], Callable[[], None]]
@@ -116,41 +123,6 @@ def compute_topo_hash(node_volume: int, edges: set[tuple[int, int]]) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def split_blocks(node_volume: int, forward_map: list[list[int]], reverse_map: list[list[int]], block_size):
-    # validate single weakly connected component
-    undirected_map = [sorted(set(forward_map[u] + reverse_map[u])) for u in range(node_volume)]
-
-    seen = [False] * node_volume
-    dq = deque([0])
-    seen[0] = True
-    order_list = []
-
-    while dq:
-        u = dq.popleft()
-        order_list.append(u)
-        for w in undirected_map[u]:
-            if not seen[w]:
-                seen[w] = True
-                dq.append(w)
-
-    if len(order_list) != node_volume:
-        raise ValueError("Graph is not a single weakly connected component")
-
-    # 按块大小切分为 Block
-    block_of = [-1] * node_volume
-    blocks: list[list[int]] = []
-    rid = 0
-    for i in range(0, node_volume, block_size):
-        block = order_list[i:i + block_size]
-        blocks.append(block)
-        for u in block:
-            block_of[u] = rid
-        rid += 1
-
-    blocks_volume = len(blocks)
-    return block_of, blocks, blocks_volume
-
-
 # ---------- 全对反向 BFS（构建下一跳、距离、树边集） ----------
 INF = 10 ** 9
 
@@ -182,44 +154,123 @@ def reverse_bfs(node_volume: int, reverse_map: list[list[int]]):
 
 
 # ---------- 区域压缩：区域默认 + 例外 ----------
-def compress_by_block(node_volume: int, block_of: list[int], next_hop: list[list[int]]):
-    block_default: list[dict[int, int]] = [{} for _ in range(node_volume)]
-    # block_default[destination_node_id] = {block_id : next_hop}
-    exceptions: list[dict[int, int]] = [{} for _ in range(node_volume)]
-    # exceptions[destination_node_id] = {current_node_id : next_hop}
+def split_blocks(node_volume: int,
+                 forward_map: list[list[int]],
+                 reverse_map: list[list[int]],
+                 block_size: int = 32) -> tuple[list[int], list[list[int]], int, int]:
+    # 生成无向邻接用于 BFS 排序
+    undirected_map = [sorted(set(forward_map[u] + reverse_map[u])) for u in range(node_volume)]
+    # 得到稳定的 BFS 顺序 同时校验图
+    dq = deque([0])
+    seen = [False] * node_volume
+    seen[0] = True
+    order_list = []
+    while dq:
+        u = dq.popleft()
+        order_list.append(u)
+        for w in undirected_map[u]:
+            if not seen[w]:
+                seen[w] = True
+                dq.append(w)
+    if len(order_list) != node_volume:
+        raise ValueError("Graph is not a single weakly connected component")
 
-    # 对每个目的地 m 的一列进行压缩
+    block_of = [-1] * node_volume
+    blocks: list[list[int]] = []
+    current_block_id = 0
+    for i in range(0, node_volume, block_size):
+        block = order_list[i:i + block_size]
+        blocks.append(block)
+        for u in block:
+            block_of[u] = current_block_id
+        current_block_id += 1
+    blocks_volume = len(blocks)
+
+    return block_of, blocks, blocks_volume, block_size
+
+
+def build_compact_columns(node_volume: int,
+                          block_of: list[int],
+                          block_volume: int,
+                          next_hop: list[list[int]]):
+    # 输出结构
+    col_kind: list[int] = [0] * node_volume
+    row_direct: list[Optional[array]] = [None] * node_volume
+    region_default: list[Optional[array]] = [None] * node_volume
+    exc_nodes: list[Optional[array]] = [None] * node_volume
+    exc_hops: list[Optional[array]] = [None] * node_volume
+
     for m in range(node_volume):
-        # 先统计每个区域的众数（忽略 -1）
-        area_values: dict[int, list[int]] = defaultdict(list)
-        for n in range(node_volume):
-            area_values[block_of[n]].append(next_hop[m][n])
-        defaults = {}
-        for rid, hops in area_values.items():
-            cnt = Counter([h for h in hops if h != -1])
-            if cnt:
-                defaults[rid] = cnt.most_common(1)[0][0]
-            else:
-                defaults[rid] = -1
-        block_default[m] = defaults
-        # 写例外（不同于默认的）
-        exc = {}
+        # 统计每块众数
+        counts_per_block: dict[int, Counter] = defaultdict(Counter)
         for n in range(node_volume):
             rid = block_of[n]
-            if next_hop[m][n] != defaults[rid]:
-                exc[n] = next_hop[m][n]
-        exceptions[m] = exc
-    return block_default, exceptions
+            hop = next_hop[m][n]
+            counts_per_block[rid][hop] += 1
+
+        # 构建区域默认数组（array('h')，支持 -1）
+        default_arr = array('h', [-1] * block_volume)
+        for rid in range(block_volume):
+            cnt = counts_per_block.get(rid)
+            if cnt and len(cnt) > 0:
+                mode_val, _ = cnt.most_common(1)[0]
+                default_arr[rid] = int(mode_val)
+            else:
+                default_arr[rid] = -1
+
+        # 构建例外稀疏数组（节点按升序）
+        ex_nodes = array('h')
+        ex_hops = array('h')
+        exceptions = 0
+        for n in range(node_volume):
+            rid = block_of[n]
+            hop = next_hop[m][n]
+            if hop != default_arr[rid]:
+                ex_nodes.append(n)
+                ex_hops.append(int(hop))
+                exceptions += 1
+
+        # 估算并择优
+        bytes_direct = 2 * node_volume
+        bytes_region = 2 * block_volume + 4 * exceptions
+
+        if bytes_region < bytes_direct:
+            # 采用区域列
+            col_kind[m] = 1
+            region_default[m] = default_arr
+            exc_nodes[m] = ex_nodes
+            exc_hops[m] = ex_hops
+            row_direct[m] = None
+        else:
+            # 采用直接列
+            col_kind[m] = 0
+            row_direct[m] = array('h', (int(next_hop[m][n]) for n in range(node_volume)))
+            region_default[m] = None
+            exc_nodes[m] = None
+            exc_hops[m] = None
+
+    return col_kind, row_direct, region_default, exc_nodes, exc_hops
 
 
 # ---------- 查询：通过区域压缩结构取下一跳 ----------
 def lookup_next_hop(idx: Index, current_node_id: int, destination_node_id: int) -> int:
-    # 例外优先，未命中用区域默认
-    if current_node_id in idx.exception_hop[destination_node_id]:
-        return idx.exception_hop[destination_node_id][current_node_id]
-    block_id = idx.block_of[current_node_id]
-    return idx.block_default_hop[destination_node_id].get(block_id, -1)
-    # 若区域默认也无定义，返回 -1
+    kind = idx.col_kind[destination_node_id]
+    if kind == 0:
+        # 直接列：O(1) 取值
+        row = idx.row_direct[destination_node_id]
+        # row 不应为 None
+        return row[current_node_id] if row is not None else -1
+    else:
+        # 区域列：先查例外（二分），未命中用默认
+        nodes = idx.exc_nodes[destination_node_id]
+        hops = idx.exc_hops[destination_node_id]
+        if nodes is not None and len(nodes) > 0:
+            pos = bisect.bisect_left(nodes, current_node_id)
+            if pos < len(nodes) and nodes[pos] == current_node_id:
+                return hops[pos]
+        block_id = idx.block_of[current_node_id]
+        defaults = idx.region_default[destination_node_id]
+        return defaults[block_id] if defaults is not None else -1
 
 
 # ---------- 在线 BFS 兜底（可选避开某条边） ----------
@@ -255,7 +306,7 @@ def fallback_next_hop(index: Index, current_node_id: int, destination_node_id: i
 
 
 # ---------- 编译（全量或增量） ----------
-def compile_specs(specs: list[NodeSpec], prev: Optional[Index] = None) -> Index:
+def compile_specs(specs: list[NodeSpec], prev: Optional[Index] = None, log_output: bool = True) -> Index:
     name2id, id2name, _ = build_stable_idmap(specs, prev)
 
     node_volume, edges, forward, reverse_map, edge_handle, node_features = build_graph(specs, name2id)
@@ -263,9 +314,7 @@ def compile_specs(specs: list[NodeSpec], prev: Optional[Index] = None) -> Index:
 
     # 如果拓扑未变，直接复用结构（只更新行为层）
     if prev is not None and topo_hash == prev.topo_hash:
-        print("[build] topology unchanged -> reuse index; only update callables")
-
-        # 新增：用新的 features 生成 validators（开发期可能只改了 features/runnable）
+        print("[build] topology unchanged -> reuse index; only update callables") if log_output else None
         scan_order = list(itertools.chain.from_iterable(prev.blocks)) if prev.blocks else list(range(node_volume))
         validators: list[None | Callable[[], bool]] = [None] * node_volume
         for node in specs:
@@ -273,10 +322,15 @@ def compile_specs(specs: list[NodeSpec], prev: Optional[Index] = None) -> Index:
 
         return Index(
             name2id=name2id, id2name=id2name, topo_hash=topo_hash,
-            node_volume=prev.node_volume, edges=prev.edges, forward_map=prev.forward_map, reverse_map=prev.reverse_map,
+            node_volume=prev.node_volume, edges=prev.edges,
+            forward_map=prev.forward_map, reverse_map=prev.reverse_map,
             block_of=prev.block_of, blocks=prev.blocks, block_volume=prev.block_volume,
             next_hop=prev.next_hop, dist=prev.dist,
-            block_default_hop=prev.block_default_hop, exception_hop=prev.exception_hop,
+            col_kind=prev.col_kind,
+            row_direct=prev.row_direct,
+            region_default=prev.region_default,
+            exc_nodes=prev.exc_nodes,
+            exc_hops=prev.exc_hops,
             edge_handle=edge_handle,
             validators=validators,
             scan_order=scan_order,
@@ -289,9 +343,9 @@ def compile_specs(specs: list[NodeSpec], prev: Optional[Index] = None) -> Index:
         removed = prev.edges - edges
         if len(added) + len(removed) <= max(1, node_volume // 3):
             # we do an incremental rebuild when the number of changed edges is small(1/3 of node volume)
-            print(f"[build] incremental rebuild: +{len(added)} -{len(removed)}")
-            print(f"[build] Added edges: {[(id2name[u], id2name[v]) for u, v in added]}")
-            print(f"[build] Removed edges: {[(id2name[u], id2name[v]) for u, v in removed]}")
+            print(f"[build] incremental rebuild: +{len(added)} -{len(removed)}") if log_output else None
+            print(f"[build] Added edges: {[(id2name[u], id2name[v]) for u, v in added]}") if log_output else None
+            print(f"[build] Removed edges: {[(id2name[u], id2name[v]) for u, v in removed]}") if log_output else None
             # 从 prev 拷贝
             next_hop = [row[:] for row in prev.next_hop]
             dist = [row[:] for row in prev.dist]
@@ -340,18 +394,25 @@ def compile_specs(specs: list[NodeSpec], prev: Optional[Index] = None) -> Index:
 
             # 区域化可沿用旧划分（小改动不重分区），仅重写压缩列
             block_of, blocks, blocks_volume = prev.block_of, prev.blocks, prev.block_volume
-            block_default_hop, exceptions_hop = compress_by_block(node_volume, block_of, next_hop)
+            col_kind, row_direct, region_default, exc_nodes, exc_hops = build_compact_columns(
+                node_volume, block_of, blocks_volume, next_hop
+            )
 
             scan_order = list(itertools.chain.from_iterable(blocks)) if blocks else list(range(node_volume))
             validators: list[None | Callable[[], bool]] = [None] * node_volume
             for node in specs:
                 validators[name2id[node.name]] = node.check
+
             return Index(
                 name2id=name2id, id2name=id2name, topo_hash=topo_hash,
                 node_volume=node_volume, edges=edges, forward_map=forward, reverse_map=reverse_map,
                 block_of=block_of, blocks=blocks, block_volume=blocks_volume,
                 next_hop=next_hop, dist=dist,
-                block_default_hop=block_default_hop, exception_hop=exceptions_hop,
+                col_kind=col_kind,
+                row_direct=row_direct,
+                region_default=region_default,
+                exc_nodes=exc_nodes,
+                exc_hops=exc_hops,
                 edge_handle=edge_handle,
                 validators=validators,
                 scan_order=scan_order,
@@ -359,26 +420,27 @@ def compile_specs(specs: list[NodeSpec], prev: Optional[Index] = None) -> Index:
             )
 
     # 全量构建
-    print("[build] full build")
-    block_of, blocks, blocks_volume = split_blocks(node_volume, forward, reverse_map,
-                                                   block_size=max(2, node_volume // max(4, node_volume // 6)))
+    print("[build] full build") if log_output else None
 
+    # 1) 先跑反向 BFS
     next_hop, dist, tree_edges_by_dst = reverse_bfs(node_volume, reverse_map)
 
-    # 建 edge2dst
+    # 2) 用采样评估选择块大小并切块
+    block_of, blocks, blocks_volume, chosen_blk = split_blocks(node_volume, forward, reverse_map)
+    print(f"[build] chosen block_size={chosen_blk}, blocks={blocks_volume}") if log_output else None
+
+    # 3) 逐列自适应压缩（直接 vs 区域，择优）
+    col_kind, row_direct, region_default, exc_nodes, exc_hops = build_compact_columns(
+        node_volume, block_of, blocks_volume, next_hop
+    )
+
+    # 4) 建 edge2dst（与原逻辑一致）
     edge2dst: dict[tuple[int, int], set[int]] = defaultdict(set)
-    # `defaultdict` offers a set for each new key
     for m, tree_edges in tree_edges_by_dst.items():
-        # m: destination node
-        # edges: set of (u,v) edges in BFS tree towards m
         for tree_edge in tree_edges:
             edge2dst[tree_edge].add(m)
 
-    block_default_hop, exceptions_hop = compress_by_block(node_volume, block_of, next_hop)
-
     scan_order = list(itertools.chain.from_iterable(blocks)) if blocks else list(range(node_volume))
-    # an initial scan order for full table scan during runtime
-    # we adjust this order dynamically based on hits (move-to-front)
     validators: list[None | Callable[[], bool]] = [None] * node_volume
     for node in specs:
         validators[name2id[node.name]] = node.check
@@ -388,7 +450,11 @@ def compile_specs(specs: list[NodeSpec], prev: Optional[Index] = None) -> Index:
         node_volume=node_volume, edges=edges, forward_map=forward, reverse_map=reverse_map,
         block_of=block_of, blocks=blocks, block_volume=blocks_volume,
         next_hop=next_hop, dist=dist,
-        block_default_hop=block_default_hop, exception_hop=exceptions_hop,
+        col_kind=col_kind,
+        row_direct=row_direct,
+        region_default=region_default,
+        exc_nodes=exc_nodes,
+        exc_hops=exc_hops,
         edge_handle=edge_handle,
         validators=validators,
         scan_order=scan_order,
