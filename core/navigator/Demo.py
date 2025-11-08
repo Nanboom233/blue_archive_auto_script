@@ -91,7 +91,7 @@ def resolve_current_node(index_instance: Index, priority: Optional[list[int]] = 
     node_volume = index_instance.node_volume
 
     # 1) 优先候选（目标/源），按顺序逐一校验
-    seen: Set[int] = set()
+    seen: set[int] = set()
     if priority:
         for node_id in priority:
             if 0 <= node_id < node_volume and node_id not in seen:
@@ -113,7 +113,7 @@ def resolve_current_node(index_instance: Index, priority: Optional[list[int]] = 
 
 
 def goto(index: Index, current_id: int, destination_id: int,
-         path: Optional[list] = None, deprecated_path: Optional[list[tuple[int, int]]] = None) -> bool:
+         path: Optional[list] = None, deprecated_path: Optional[set[tuple[int, int]]] = None) -> bool:
     if not path:
         if deprecated_path:
             # if any path is deprecated, we use runtime bfs to lookup instead of static path
@@ -127,6 +127,8 @@ def goto(index: Index, current_id: int, destination_id: int,
         tmp_id = current_id
         while tmp_id != destination_id:
             next_node_id = lookup_next_hop(index, tmp_id, destination_id)
+            if next_node_id == -1:
+                raise RuntimeError(f"No path exists from {index.id2name[tmp_id]} to {index.id2name[destination_id]}")
             static_path.append(next_node_id)
             tmp_id = next_node_id
         return goto(index, current_id, destination_id, path=static_path)
@@ -143,8 +145,8 @@ def goto(index: Index, current_id: int, destination_id: int,
         except Exception as e:
             print(f"error executing action from {index.id2name[current_id]} to {index.id2name[next_node_id]}: {e}")
             if deprecated_path is None:
-                deprecated_path = []
-            deprecated_path.append((current_id, next_node_id))
+                deprecated_path = set()
+            deprecated_path.add((current_id, next_node_id))
             return goto(index, current_id, destination_id, deprecated_path=deprecated_path)
         resolved_id = resolve_current_node(index, [next_node_id, current_id])
         if resolved_id is None:
@@ -153,11 +155,11 @@ def goto(index: Index, current_id: int, destination_id: int,
             print(
                 f"warning: path blocked from {index.id2name[current_id]} to {index.id2name[next_node_id]}, recalculating...")
             if deprecated_path is None:
-                deprecated_path = []
-            deprecated_path.append((current_id, next_node_id))
+                deprecated_path = set()
+            deprecated_path.add((current_id, next_node_id))
             return goto(index, current_id, destination_id, deprecated_path=deprecated_path)
         elif resolved_id != next_node_id:
-            print("warning: deviated from planned path,recalculating...")
+            print("warning: deviated from planned path, recalculating...")
             return goto(index, current_id, destination_id, deprecated_path=deprecated_path)
         current_id = resolved_id
     return True

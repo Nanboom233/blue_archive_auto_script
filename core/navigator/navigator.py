@@ -6,17 +6,12 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 
+@dataclass
 class NodeSpec:
     name: str
     description: str
     features: list[Callable[[], bool]]  # runnable: env -> bool
     actions: dict[str, Optional[Callable]]  # target_name -> runnable(env) 产生从本节点到目标的动作
-
-    def __init__(self, name, description, features, actions):
-        self.name = name
-        self.description = description
-        self.features = features
-        self.actions = actions
 
     def check(self) -> bool:
         for feature in self.features:
@@ -48,8 +43,8 @@ class Index:
     dist: list[list[int]]  # dist[m][n] = steps or INF (大数)
 
     # 压缩（区域默认 + 例外）
-    block_default_hop: list[dict[int, int]]  # per m: {node -> hop}
-    exception_hop: list[dict[int, int]]  # per m: {node -> hop}
+    block_default_hop: list[dict[int, int]]  # per m: {block_id -> hop}
+    exception_hop: list[dict[int, int]]  # per m: {node_id -> hop}
 
     # 行为层
     edge_handle: dict[tuple[int, int], Callable[[], None]]
@@ -138,7 +133,7 @@ def split_blocks(node_volume: int, forward_map: list[list[int]], reverse_map: li
                 seen[w] = True
                 dq.append(w)
 
-    if len(undirected_map) != node_volume:
+    if len(order_list) != node_volume:
         raise ValueError("Graph is not a single weakly connected component")
 
     # 按块大小切分为 Block
@@ -166,7 +161,7 @@ def reverse_bfs(node_volume: int, reverse_map: list[list[int]]):
     tree_edges_by_dst: dict[int, set[tuple[int, int]]] = {m: set() for m in range(node_volume)}
     # tree_edges_by_dst stores the BFS tree edges for each destination m
     # this helps build edge2dst mapping and incremental updates
-    # tre_edge_by_dist: m -> set of (u,v) edges in BFS tree towards m
+    # tree_edge_by_dist: m -> set of (u,v) edges in BFS tree towards m
 
     # TODO: entry node validation，检测不可达节点
     for m in range(node_volume):
@@ -189,7 +184,7 @@ def reverse_bfs(node_volume: int, reverse_map: list[list[int]]):
 # ---------- 区域压缩：区域默认 + 例外 ----------
 def compress_by_block(node_volume: int, block_of: list[int], next_hop: list[list[int]]):
     block_default: list[dict[int, int]] = [{} for _ in range(node_volume)]
-    # block_default[destination_node_id] = {destination_node_id : next_hop}
+    # block_default[destination_node_id] = {block_id : next_hop}
     exceptions: list[dict[int, int]] = [{} for _ in range(node_volume)]
     # exceptions[destination_node_id] = {current_node_id : next_hop}
 
@@ -229,7 +224,7 @@ def lookup_next_hop(idx: Index, current_node_id: int, destination_node_id: int) 
 
 # ---------- 在线 BFS 兜底（可选避开某条边） ----------
 def fallback_next_hop(index: Index, current_node_id: int, destination_node_id: int,
-                      avoid_edge: Optional[list[tuple[int, int]]] = None) -> None | list[int]:
+                      avoid_edge: Optional[set[tuple[int, int]]] = None) -> None | list[int]:
     if current_node_id == destination_node_id:
         return []
     path = []
@@ -292,7 +287,7 @@ def compile_specs(specs: list[NodeSpec], prev: Optional[Index] = None) -> Index:
     if prev is not None and prev.node_volume == node_volume:
         added = edges - prev.edges
         removed = prev.edges - edges
-        if len(added) + len(removed) <= max(1, node_volume // 3) or True:
+        if len(added) + len(removed) <= max(1, node_volume // 3):
             # we do an incremental rebuild when the number of changed edges is small(1/3 of node volume)
             print(f"[build] incremental rebuild: +{len(added)} -{len(removed)}")
             print(f"[build] Added edges: {[(id2name[u], id2name[v]) for u, v in added]}")
