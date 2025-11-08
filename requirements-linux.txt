@@ -1,6 +1,5 @@
 PyQt5~=5.15.11
 pyqt5-qt5==5.15.2
-pywin32~=311
 dulwich~=0.24.2
 numpy~=2.3.3
 requests~=2.32.5
