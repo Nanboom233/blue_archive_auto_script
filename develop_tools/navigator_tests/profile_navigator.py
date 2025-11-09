@@ -14,18 +14,14 @@ Removed: baseline_direct query run (per requirement), but memory comparison betw
 uncompressed (next_hop) and compressed representation retained.
 """
 from __future__ import annotations
+
 import argparse
 import random
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Optional, List, Tuple, Dict
-import gzip
-import pickle
-import tempfile
-import os
-import math
-import sys as _sys
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 if str(ROOT) not in sys.path:
@@ -33,6 +29,7 @@ if str(ROOT) not in sys.path:
 
 from core.navigator import Navigator
 from develop_tools.navigator_tests import generator as gen
+
 
 # ---------------- Format helpers ----------------
 
@@ -45,23 +42,30 @@ def format_bytes(n: int) -> str:
         idx += 1
     return f"{x:.2f} {units[idx]}"
 
+
 def safe_ratio(a: int, b: int) -> float:
     return a / b if b else float('inf')
+
 
 def pct_reduction(original: int, reduced: int) -> float:
     if original <= 0:
         return 0.0
     return (original - reduced) * 100.0 / original
 
+
 # ---------------- Spec generation wrapper ----------------
 
-def generate_interfaces(num_nodes: int, edge_probability: Optional[float], seed: int, avg_out_degree: float) -> list[Navigator.Interface]:
-    specs = gen.generate_specs(num_nodes=num_nodes, edge_probability=edge_probability, seed=seed, failing_edge_ratio=0.0, avg_out_degree=avg_out_degree)
+def generate_interfaces(num_nodes: int, edge_probability: Optional[float], seed: int, avg_out_degree: float) -> list[
+    Navigator.Interface]:
+    specs = gen.generate_specs(num_nodes=num_nodes, edge_probability=edge_probability, seed=seed,
+                               failing_edge_ratio=0.0, avg_out_degree=avg_out_degree)
     return specs
+
 
 # ---------------- Dynamic failure injection ----------------
 
 FailureMode = Dict[Tuple[int, int], str]  # (u_id,v_id) -> 'raise' | 'stay'
+
 
 def wrap_actions_dynamic(nav: Navigator, failure_map: FailureMode) -> None:
     id2name = nav.metadata.id2name
@@ -75,8 +79,11 @@ def wrap_actions_dynamic(nav: Navigator, failure_map: FailureMode) -> None:
                     return  # stay at src
                 else:
                     fn()  # perform movement
+
             return _wrapped
+
         nav._edge2action[(u, v)] = make_wrapper()
+
 
 # ---------------- Query helpers ----------------
 
@@ -95,13 +102,15 @@ def static_path(nav: Navigator, src: int, dst: int) -> Optional[List[int]]:
         guard += 1
     return path if cur == dst else None
 
+
 # ---------------- Memory measurement ----------------
 
 def _sizeof(obj) -> int:
     try:
-        return _sys.getsizeof(obj)
+        return sys.getsizeof(obj)
     except Exception:
         return 0
+
 
 def memory_breakdown_full(meta: Navigator.FullMetadata) -> Dict[str, int]:
     size = 0
@@ -123,6 +132,7 @@ def memory_breakdown_full(meta: Navigator.FullMetadata) -> Dict[str, int]:
     size += _sizeof(meta.edge2destination) + sum(_sizeof(v) for v in meta.edge2destination.values())
     return {"full_object_bytes": size}
 
+
 def memory_breakdown_runtime(meta: Navigator.BaseMetadata) -> Dict[str, int]:
     size = 0
     size += _sizeof(meta.name2id)
@@ -135,6 +145,7 @@ def memory_breakdown_runtime(meta: Navigator.BaseMetadata) -> Dict[str, int]:
     size += _sizeof(meta.block_except_nodes) + sum(_sizeof(a) for a in meta.block_except_nodes if a is not None)
     size += _sizeof(meta.block_except_hops) + sum(_sizeof(a) for a in meta.block_except_hops if a is not None)
     return {"runtime_object_bytes": size}
+
 
 def memory_compression(meta: Navigator.FullMetadata) -> Dict[str, float]:
     direct_list_overhead = _sizeof(meta.next_hop) + sum(_sizeof(row) for row in meta.next_hop)
@@ -151,6 +162,7 @@ def memory_compression(meta: Navigator.FullMetadata) -> Dict[str, float]:
         "compressed_overhead_bytes": compressed_overhead,
         "direct_vs_compressed_ratio": ratio,
     }
+
 
 # ---------------- Query runners ----------------
 
@@ -174,7 +186,9 @@ def run_baseline(nav: Navigator, queries: int, seed: int) -> Tuple[int, int]:
             failures += 1
     return successes, failures
 
-def run_failing(nav: Navigator, queries: int, single_ratio: float, multi_ratio: float, seed: int, mode: str) -> Tuple[int, int]:
+
+def run_failing(nav: Navigator, queries: int, single_ratio: float, multi_ratio: float, seed: int, mode: str) -> Tuple[
+    int, int]:
     rng = random.Random(seed)
     failures_map: FailureMode = {}
     wrap_actions_dynamic(nav, failures_map)  # ensure wrappers installed
@@ -279,6 +293,7 @@ def run_failing(nav: Navigator, queries: int, single_ratio: float, multi_ratio: 
 
     return successes, failures
 
+
 # ---------------- Serialization timing ----------------
 
 def save_metadata(meta: Navigator.BaseMetadata | Navigator.FullMetadata, path: Path) -> float:
@@ -286,10 +301,12 @@ def save_metadata(meta: Navigator.BaseMetadata | Navigator.FullMetadata, path: P
     meta.save(str(path))
     return time.perf_counter() - t0
 
+
 def load_metadata(path: Path) -> Tuple[Navigator.BaseMetadata | Navigator.FullMetadata, float]:
     t0 = time.perf_counter()
     loaded = Navigator.load_metadata(str(path))
     return loaded, time.perf_counter() - t0
+
 
 # ---------------- Main ----------------
 
@@ -299,7 +316,7 @@ def main():
     ap.add_argument('--queries', type=int, default=2000000)
     ap.add_argument('--edge-prob', type=float, default=None)
     ap.add_argument('--avg-out-degree', type=float, default=6.5)
-    ap.add_argument('--seed', type=int, default=time.time())
+    ap.add_argument('--seed', type=int, default=int(time.time()))
     ap.add_argument('--single-fail', type=float, default=0.05)
     ap.add_argument('--multi-fail', type=float, default=0.02)
     ap.add_argument('--fail-mode', choices=['raise', 'stay', 'mixed'], default='mixed')
@@ -321,7 +338,8 @@ def main():
 
     # Derive runtime metadata (BaseMetadata)
     t0 = time.perf_counter()
-    base_meta = navigator.metadata.to_base() if isinstance(navigator.metadata, Navigator.FullMetadata) else navigator.metadata
+    base_meta = navigator.metadata.to_base() if isinstance(navigator.metadata,
+                                                           Navigator.FullMetadata) else navigator.metadata
     t_to_base = time.perf_counter() - t0
     print(f"[time] derive_runtime_metadata={t_to_base:.4f}s")
 
@@ -348,7 +366,7 @@ def main():
     direct_vs_compact_ratio = compression['direct_vs_compressed_ratio']
 
     runtime_reduction_pct = pct_reduction(full_bytes, runtime_bytes)
-    compression_saving_pct = pct_reduction(direct_bytes, compact_bytes)
+    compression_saving_pct = pct_reduction(int(direct_bytes), int(compact_bytes))
     file_reduction_pct = pct_reduction(size_full, size_runtime)
 
     print("[memory]\n"
@@ -357,8 +375,8 @@ def main():
           f"    runtime_object:    {runtime_bytes} bytes ({format_bytes(runtime_bytes)})\n"
           f"    runtime_reduction: {runtime_reduction_pct:.2f}% vs full\n"
           "  next_hop:\n"
-          f"    direct:            {direct_bytes} bytes ({format_bytes(direct_bytes)})\n"
-          f"    compact:           {compact_bytes} bytes ({format_bytes(compact_bytes)})\n"
+          f"    direct:            {direct_bytes} bytes ({format_bytes(int(direct_bytes))})\n"
+          f"    compact:           {compact_bytes} bytes ({format_bytes(int(compact_bytes))})\n"
           f"    compact_ratio:     {direct_vs_compact_ratio:.2f}x (direct/compact)\n"
           f"    compact_saving:    {compression_saving_pct:.2f}% vs direct\n"
           "  serialized:\n"
@@ -378,11 +396,15 @@ def main():
 
     # Failing queries
     t0 = time.perf_counter()
-    fail_success, fail_fail = run_failing(navigator, args.queries, args.single_fail, args.multi_fail, args.seed, args.fail_mode)
+    fail_success, fail_fail = run_failing(navigator, args.queries, args.single_fail, args.multi_fail, args.seed,
+                                          args.fail_mode)
     t_failing = time.perf_counter() - t0
-    print(f"[failing] success={fail_success} fail={fail_fail} time={t_failing:.4f}s single_ratio={args.single_fail} multi_ratio={args.multi_fail} mode={args.fail_mode}")
+    print(
+        f"[failing] success={fail_success} fail={fail_fail} time={t_failing:.4f}s single_ratio={args.single_fail} multi_ratio={args.multi_fail} mode={args.fail_mode}")
 
-    print(f"[summary] baseline_success={base_success} baseline_fail={base_fail} failing_success={fail_success} failing_fail={fail_fail}")
+    print(
+        f"[summary] baseline_success={base_success} baseline_fail={base_fail} failing_success={fail_success} failing_fail={fail_fail}")
+
 
 if __name__ == '__main__':
     main()

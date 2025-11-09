@@ -1,6 +1,6 @@
 from functools import partial
 
-from navigator import Navigator
+from .navigator import Navigator
 
 CURRENT_NODE: str = ""
 
@@ -90,13 +90,13 @@ def main():
     navigator = Navigator(interfaces)
 
     # test saving and reading
-    assert isinstance(navigator.metadata,Navigator.FullMetadata)
-    navigator.metadata.save("navigator-full.metadata") # full metadata
-    navigator.metadata.to_base().save("navigator-runtime.metadata") # runtime base metadata
+    assert isinstance(navigator.metadata, Navigator.FullMetadata)
+    navigator.metadata.save("navigator-full.metadata")  # full metadata
+    navigator.metadata.to_base().save("navigator-runtime.metadata")  # runtime base metadata
     del navigator
 
     # use runtime base metadata
-    navigator = Navigator(interfaces,Navigator.load_metadata("navigator-full.metadata"))
+    navigator = Navigator(interfaces, Navigator.load_metadata("navigator-full.metadata"))
 
     # 运行期环境
     global CURRENT_NODE
@@ -118,7 +118,7 @@ def main():
 
     CURRENT_NODE = "A1"
     print("\n== goto A1 -> B2 with failed runnable (fallback BFS) ==")
-    if not navigator.goto("A1","B2"):
+    if not navigator.goto("A1", "B2"):
         raise RuntimeError("Failed to reach B2 from A1")
 
     # 5) 增量：新增边 A1->Gate，仅重建受影响的目的地列
@@ -134,7 +134,7 @@ def main():
     # 观察路径是否更短（A1->Gate->B2）
     CURRENT_NODE = "A1"
     print("\n== goto A1 -> B2 after edge added ==")
-    if not navigator.goto("A1","B2"):
+    if not navigator.goto("A1", "B2"):
         raise RuntimeError("Failed to reach B2 from A1")
 
     print("\nDone.")

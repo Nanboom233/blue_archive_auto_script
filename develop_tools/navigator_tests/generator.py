@@ -3,9 +3,10 @@
 We ensure weak connectivity by first building a linear backbone chain N0->N1->...->N{n-1} then add random edges.
 """
 from __future__ import annotations
+
+import random
 from functools import partial
 from typing import Callable, Optional
-import random
 
 from core.navigator import Navigator
 
@@ -49,7 +50,7 @@ def generate_specs(
     failing_stay_ratio: float | None = None,
     avg_out_degree: float | None = None,
 ) -> list[Navigator.Interface]:
-    """Generate a list of NodeSpec objects.
+    """Generate a list of Navigator.Interface objects.
 
     Parameters
     ----------
@@ -93,7 +94,7 @@ def generate_specs(
     else:
         # Target average total out-degree ≈ avg_out_degree (default ~6.5)
         target = 6.5 if avg_out_degree is None else max(0.0, avg_out_degree)
-        backbone_avg = (num_nodes - 1) / num_nodes if num_nodes > 0 else 0.0  # average out-degree added by backbone
+        backbone_avg = (num_nodes - 1) / num_nodes  # average out-degree added by backbone
         target_extra = max(0.0, target - backbone_avg)
         if num_nodes > 1:
             effective_p = min(1.0, target_extra / (num_nodes - 1))

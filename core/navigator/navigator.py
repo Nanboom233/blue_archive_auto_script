@@ -205,15 +205,15 @@ class Navigator:
 
         # noinspection PyShadowingNames
         def build_idmap(interfaces: list[Interface],
-                        cached_idmap: Optional[Metadata]) -> tuple[dict[str, int], list[str]]:
-            if cached_idmap is None:
+                        cached_metadata: Optional[Navigator.FullMetadata]) -> tuple[dict[str, int], list[str]]:
+            if cached_metadata is None:
                 # use sort to ensure stable id assignment
                 names = sorted([s.name for s in interfaces])
                 name2id = {n: i for i, n in enumerate(names)}
                 id2name = deepcopy(names)
             else:
-                name2id: dict[str, int] = cached_idmap.name2id
-                id2name: list[str] = cached_idmap.id2name
+                name2id: dict[str, int] = cached_metadata.name2id
+                id2name: list[str] = cached_metadata.id2name
                 new_names: list[str] = sorted([s.name for s in interfaces if s.name not in name2id])
                 for n in new_names:
                     name2id[n] = len(id2name)
@@ -294,7 +294,7 @@ class Navigator:
             # this helps build edge2destination mapping and incremental updates
             # tree_edge_by_dist: m -> set of (u,v) edges in BFS tree towards m
 
-            # TODO: entry node validation，检测不可达节点
+            # TODO: entry node validation, detect unreachable nodes
             for m in range(node_volume):
                 dq = deque()
                 dq.append(m)
@@ -681,7 +681,7 @@ class Navigator:
                 return interface_id
         return None
 
-    def resolve_current_interface(self, priority: Optional[list[int]] = None) -> Optional[int]:
+    def resolve_current_interface(self, priority: Optional[list[int]] = None) -> Optional[str]:
         interface_id = self.resolve_current_interface_id(priority)
         return self.metadata.id2name[interface_id] if interface_id is not None else None
 
