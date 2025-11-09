@@ -1,473 +1,388 @@
-"""Navigator lightweight profiling & correctness harness.
+"""Navigator profiling script (rebuilt for new Navigator class).
 
-Two phases:
-1. Baseline phase: all edges succeed (no failures) -> measure success count and basic path execution.
-2. Failing phase: per-query injection of dynamic failures (single / multi) without recompiling the index.
+Features:
+1. Build FullMetadata from generated specs; time the build.
+2. Derive runtime BaseMetadata (to_base); time the conversion.
+3. Memory comparison: direct next_hop vs compressed block representation, plus
+   FullMetadata object vs BaseMetadata object, and serialized file sizes.
+4. Save & load timings for both full and runtime metadata.
+5. Baseline query execution (compressed static_next_hop) with timing.
+6. Failing query execution (single + multi edge failures with raise/stay modes) with timing.
+7. Coarse timing prints using time.perf_counter; external profiler can attach for deeper info.
 
-Design changes:
-- Actions are wrapped to consult a global FAILURE_MODE_MAP to decide success, raise, or stay.
-- No compile_specs inside query loop; topology remains stable to simulate realistic runtime failure.
-- Each major step split into functions for clearer profiler call graph.
-- Minimal output for integration with external profiler tools.
+Removed: baseline_direct query run (per requirement), but memory comparison between
+uncompressed (next_hop) and compressed representation retained.
 """
 from __future__ import annotations
-import random
 import argparse
+import random
 import sys
+import time
 from pathlib import Path
-from typing import Optional, Iterable
+from typing import Optional, List, Tuple, Dict
+import gzip
+import pickle
+import tempfile
+import os
+import math
+import sys as _sys
 
-# Ensure project root on sys.path when running as a standalone script
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.navigator import compile_specs, lookup_next_hop
-from develop_tools import navigator_tests as gen
+from core.navigator import Navigator
+from develop_tools.navigator_tests import generator as gen
 
-# ---------------- Failure control globals ----------------
-FAILURE_MODE_MAP: dict[tuple[str, str], str] = {}  # (src_name, dst_name) -> 'raise' | 'stay'
+# ---------------- Format helpers ----------------
 
-# ---------------- Helpers ----------------
+def format_bytes(n: int) -> str:
+    units = ["B", "KiB", "MiB", "GiB", "TiB"]
+    x = float(n)
+    idx = 0
+    while x >= 1024 and idx < len(units) - 1:
+        x /= 1024.0
+        idx += 1
+    return f"{x:.2f} {units[idx]}"
 
-def resolve_current_node(index_instance, priority: Optional[list[int]] = None) -> Optional[int]:
-    node_volume = index_instance.node_volume
-    seen: set[int] = set()
-    if priority:
-        for node_id in priority:
-            if 0 <= node_id < node_volume and node_id not in seen:
-                seen.add(node_id)
-                validator = index_instance.validators[node_id]
-                if validator and validator():
-                    return node_id
-    for idx, node_id in enumerate(index_instance.scan_order):
-        if node_id in seen:
-            continue
-        validator = index_instance.validators[node_id]
-        if validator and validator():
-            if idx > 0:
-                index_instance.scan_order.pop(idx)
-                index_instance.scan_order.insert(0, node_id)
-            return node_id
-    return None
+def safe_ratio(a: int, b: int) -> float:
+    return a / b if b else float('inf')
 
+def pct_reduction(original: int, reduced: int) -> float:
+    if original <= 0:
+        return 0.0
+    return (original - reduced) * 100.0 / original
 
-def fallback_next_hop_wrapper(index, current_id: int, destination_id: int, deprecated: set[tuple[int, int]]):
-    from core.navigator import fallback_next_hop
-    return fallback_next_hop(index, current_id, destination_id, deprecated)
+# ---------------- Spec generation wrapper ----------------
 
-
-def goto(index, current_id: int, destination_id: int, path=None, deprecated=None, hop_func=None):
-    if hop_func is None:
-        hop_func = lambda idx, u, d: lookup_next_hop(idx, u, d)
-    if not path:
-        if deprecated:
-            fb = fallback_next_hop_wrapper(index, current_id, destination_id, deprecated)
-            if fb is None:
-                return False
-            return goto(index, current_id, destination_id, fb, deprecated, hop_func)
-        static = []
-        tmp = current_id
-        guard = 0
-        while tmp != destination_id and guard <= index.node_volume:
-            nxt = hop_func(index, tmp, destination_id)
-            if nxt == -1:
-                return False
-            static.append(nxt)
-            tmp = nxt
-            guard += 1
-        if tmp != destination_id:
-            return False
-        return goto(index, current_id, destination_id, static, deprecated, hop_func)
-    for nxt in path:
-        action = index.edge_handle.get((current_id, nxt))
-        if action is None:
-            return False
-        try:
-            action()
-        except Exception as e:
-            # print(f"[debug] action from {index.id2name[current_id]} to {index.id2name[nxt]} raised exception: {e}")
-            if deprecated is None:
-                deprecated = set()
-            deprecated.add((current_id, nxt))
-            return goto(index, current_id, destination_id, deprecated=deprecated, hop_func=hop_func)
-        resolved = resolve_current_node(index, [nxt, current_id])
-        if resolved is None or resolved == current_id:
-            # print(f"[debug] after action from {index.id2name[current_id]} to {index.id2name[nxt]}, stuck at {index.id2name[current_id]}")
-            if deprecated is None:
-                deprecated = set()
-            deprecated.add((current_id, nxt))
-            return goto(index, current_id, destination_id, deprecated=deprecated, hop_func=hop_func)
-        elif resolved != nxt:
-            # print(f"[debug] after action from {index.id2name[current_id]} to {index.id2name[nxt]}, diverted to {index.id2name[resolved]}")
-            if deprecated is None:
-                deprecated = set()
-            deprecated.add((current_id, nxt))
-            return goto(index, current_id, destination_id, deprecated=deprecated, hop_func=hop_func)
-        current_id = resolved
-    return True
-
-
-def build_static_path(index, src_id: int, dst_id: int, hop_func) -> Optional[list[int]]:
-    path: list[int] = []
-    cur = src_id
-    guard = 0
-    while cur != dst_id and guard <= index.node_volume:
-        nxt = hop_func(index, cur, dst_id)
-        if nxt == -1:
-            return None
-        path.append(nxt)
-        cur = nxt
-        guard += 1
-    return path if cur == dst_id else None
-
-# ---------------- Dynamic action wrapping ----------------
-
-def wrap_actions_dynamic(specs):
-    """Replace each action with a dynamic wrapper consulting FAILURE_MODE_MAP."""
-    for spec in specs:
-        for dst_name in list(spec.actions.keys()):
-            def make_wrapper(src=spec.name, dst=dst_name):
-                def _wrapped():
-                    mode = FAILURE_MODE_MAP.get((src, dst))
-                    if mode == 'raise':
-                        raise RuntimeError(f"forced failure {src}->{dst}")
-                    elif mode == 'stay':
-                        # do nothing (stay at src)
-                        return None
-                    else:
-                        # success: move CURRENT_NODE
-                        gen.CURRENT_NODE = dst
-                        return None
-                return _wrapped
-            spec.actions[dst_name] = make_wrapper()
+def generate_interfaces(num_nodes: int, edge_probability: Optional[float], seed: int, avg_out_degree: float) -> list[Navigator.Interface]:
+    specs = gen.generate_specs(num_nodes=num_nodes, edge_probability=edge_probability, seed=seed, failing_edge_ratio=0.0, avg_out_degree=avg_out_degree)
     return specs
 
-# ---------------- Failure toggling ----------------
+# ---------------- Dynamic failure injection ----------------
 
-def clear_failures():
-    FAILURE_MODE_MAP.clear()
+FailureMode = Dict[Tuple[int, int], str]  # (u_id,v_id) -> 'raise' | 'stay'
 
+def wrap_actions_dynamic(nav: Navigator, failure_map: FailureMode) -> None:
+    id2name = nav.metadata.id2name
+    for (u, v), orig in list(nav._edge2action.items()):
+        def make_wrapper(src=u, dst=v, fn=orig):
+            def _wrapped():
+                mode = failure_map.get((src, dst))
+                if mode == 'raise':
+                    raise RuntimeError(f"forced failure {id2name[src]}->{id2name[dst]}")
+                elif mode == 'stay':
+                    return  # stay at src
+                else:
+                    fn()  # perform movement
+            return _wrapped
+        nav._edge2action[(u, v)] = make_wrapper()
 
-def set_failures(edge_pairs: Iterable[tuple[str, str]], mode_selector, rng: random.Random):
-    for (src, dst) in edge_pairs:
-        FAILURE_MODE_MAP[(src, dst)] = mode_selector(rng)
+# ---------------- Query helpers ----------------
 
-# ---------------- Query execution variants ----------------
+def static_path(nav: Navigator, src: int, dst: int) -> Optional[List[int]]:
+    if src == dst:
+        return []
+    path = []
+    cur = src
+    guard = 0
+    while cur != dst and guard <= nav.metadata.node_volume:
+        hop = nav.static_next_hop(cur, dst)
+        if hop == -1:
+            return None
+        path.append(hop)
+        cur = hop
+        guard += 1
+    return path if cur == dst else None
 
-# Old unified baseline retained (unused in main), keep for compatibility
+# ---------------- Memory measurement ----------------
 
-def run_baseline(index, specs, total_queries: int, seed: int, use_direct_hop: bool):
+def _sizeof(obj) -> int:
+    try:
+        return _sys.getsizeof(obj)
+    except Exception:
+        return 0
+
+def memory_breakdown_full(meta: Navigator.FullMetadata) -> Dict[str, int]:
+    size = 0
+    size += _sizeof(meta.name2id)
+    size += _sizeof(meta.id2name)
+    size += _sizeof(meta.forward_map) + sum(_sizeof(row) for row in meta.forward_map)
+    size += _sizeof(meta.reverse_map) + sum(_sizeof(row) for row in meta.reverse_map)
+    size += _sizeof(meta.edges)
+    size += _sizeof(meta.block_of)
+    size += _sizeof(meta.blocks) + sum(_sizeof(b) for b in meta.blocks)
+    size += _sizeof(meta.block_compacted)
+    size += _sizeof(meta.block_uncompacted_hops) + sum(_sizeof(a) for a in meta.block_uncompacted_hops if a is not None)
+    size += _sizeof(meta.block_compacted_hops) + sum(_sizeof(a) for a in meta.block_compacted_hops if a is not None)
+    size += _sizeof(meta.block_except_nodes) + sum(_sizeof(a) for a in meta.block_except_nodes if a is not None)
+    size += _sizeof(meta.block_except_hops) + sum(_sizeof(a) for a in meta.block_except_hops if a is not None)
+    size += _sizeof(meta.next_hop) + sum(_sizeof(row) for row in meta.next_hop)
+    size += _sizeof(meta.distances) + sum(_sizeof(row) for row in meta.distances)
+    size += _sizeof(meta.bfs_preferred_edges) + sum(_sizeof(v) for v in meta.bfs_preferred_edges.values())
+    size += _sizeof(meta.edge2destination) + sum(_sizeof(v) for v in meta.edge2destination.values())
+    return {"full_object_bytes": size}
+
+def memory_breakdown_runtime(meta: Navigator.BaseMetadata) -> Dict[str, int]:
+    size = 0
+    size += _sizeof(meta.name2id)
+    size += _sizeof(meta.id2name)
+    size += _sizeof(meta.forward_map) + sum(_sizeof(row) for row in meta.forward_map)
+    size += _sizeof(meta.block_of)
+    size += _sizeof(meta.block_compacted)
+    size += _sizeof(meta.block_uncompacted_hops) + sum(_sizeof(a) for a in meta.block_uncompacted_hops if a is not None)
+    size += _sizeof(meta.block_compacted_hops) + sum(_sizeof(a) for a in meta.block_compacted_hops if a is not None)
+    size += _sizeof(meta.block_except_nodes) + sum(_sizeof(a) for a in meta.block_except_nodes if a is not None)
+    size += _sizeof(meta.block_except_hops) + sum(_sizeof(a) for a in meta.block_except_hops if a is not None)
+    return {"runtime_object_bytes": size}
+
+def memory_compression(meta: Navigator.FullMetadata) -> Dict[str, float]:
+    direct_list_overhead = _sizeof(meta.next_hop) + sum(_sizeof(row) for row in meta.next_hop)
+    compressed_overhead = (
+        _sizeof(meta.block_compacted) +
+        _sizeof(meta.block_uncompacted_hops) + sum(_sizeof(a) for a in meta.block_uncompacted_hops if a is not None) +
+        _sizeof(meta.block_compacted_hops) + sum(_sizeof(a) for a in meta.block_compacted_hops if a is not None) +
+        _sizeof(meta.block_except_nodes) + sum(_sizeof(a) for a in meta.block_except_nodes if a is not None) +
+        _sizeof(meta.block_except_hops) + sum(_sizeof(a) for a in meta.block_except_hops if a is not None)
+    )
+    ratio = direct_list_overhead / max(1, compressed_overhead)
+    return {
+        "direct_overhead_bytes": direct_list_overhead,
+        "compressed_overhead_bytes": compressed_overhead,
+        "direct_vs_compressed_ratio": ratio,
+    }
+
+# ---------------- Query runners ----------------
+
+def run_baseline(nav: Navigator, queries: int, seed: int) -> Tuple[int, int]:
     rng = random.Random(seed)
-    hop_func = (lambda idx, u, d: idx.next_hop[d][u]) if use_direct_hop else (lambda idx, u, d: lookup_next_hop(idx, u, d))
     successes = 0
     failures = 0
-    for _ in range(total_queries):
-        src = rng.randrange(index.node_volume)
-        dst = rng.randrange(index.node_volume)
+    for _ in range(queries):
+        src = rng.randrange(nav.metadata.node_volume)
+        dst = rng.randrange(nav.metadata.node_volume)
         if src == dst:
             continue
-        gen.set_current_node(index.id2name[src])
-        clear_failures()
-        ok = goto(index, src, dst, hop_func=hop_func)
-        if ok and gen.CURRENT_NODE == index.id2name[dst]:
+        gen.set_current_node(nav.metadata.id2name[src])
+        try:
+            ok = nav.goto(src, dst, log_output=False)
+        except RuntimeError:
+            ok = False
+        if ok and gen.CURRENT_NODE == nav.metadata.id2name[dst]:
             successes += 1
         else:
             failures += 1
     return successes, failures
 
-
-def run_baseline_compressed(index, specs, total_queries: int, seed: int):
-    """Baseline using compressed lookup (lookup_next_hop)."""
+def run_failing(nav: Navigator, queries: int, single_ratio: float, multi_ratio: float, seed: int, mode: str) -> Tuple[int, int]:
     rng = random.Random(seed)
-    successes = 0
-    failures = 0
-    def hop_func(idx, u, d):
-        return lookup_next_hop(idx, u, d)
-    for _ in range(total_queries):
-        src = rng.randrange(index.node_volume)
-        dst = rng.randrange(index.node_volume)
-        if src == dst:
-            continue
-        gen.set_current_node(index.id2name[src])
-        ok = goto(index, src, dst, hop_func=hop_func)
-        if ok and gen.CURRENT_NODE == index.id2name[dst]:
-            successes += 1
-        else:
-            failures += 1
-    return successes, failures
-
-
-def run_baseline_direct(index, specs, total_queries: int, seed: int):
-    """Baseline using direct next_hop table access (uncompressed)."""
-    rng = random.Random(seed)
-    successes = 0
-    failures = 0
-    def hop_func(idx, u, d):
-        return idx.next_hop[d][u]
-    for _ in range(total_queries):
-        src = rng.randrange(index.node_volume)
-        dst = rng.randrange(index.node_volume)
-        if src == dst:
-            continue
-        gen.set_current_node(index.id2name[src])
-        ok = goto(index, src, dst, hop_func=hop_func)
-        if ok and gen.CURRENT_NODE == index.id2name[dst]:
-            successes += 1
-        else:
-            failures += 1
-    return successes, failures
-
-
-# Existing failing runner unchanged
-
-def run_failing(index, specs, total_queries: int, single_fail_ratio: float, multi_fail_ratio: float,
-                seed: int, use_direct_hop: bool, fail_mode: str):
-    rng = random.Random(seed)
-    hop_func = (lambda idx, u, d: idx.next_hop[d][u]) if use_direct_hop else (lambda idx, u, d: lookup_next_hop(idx, u, d))
-    single_fail = int(total_queries * single_fail_ratio)
-    multi_fail = int(total_queries * multi_fail_ratio)
-    no_fail = total_queries - single_fail - multi_fail
-
+    failures_map: FailureMode = {}
+    wrap_actions_dynamic(nav, failures_map)  # ensure wrappers installed
+    single = int(queries * single_ratio)
+    multi = int(queries * multi_ratio)
+    none = queries - single - multi
     successes = 0
     failures = 0
 
-    def mode_selector(local_rng: random.Random):
-        if fail_mode == 'mixed':
-            return 'stay' if local_rng.random() < 0.5 else 'raise'
-        return fail_mode  # 'raise' or 'stay'
+    def select_mode() -> str:
+        if mode == 'mixed':
+            return 'stay' if rng.random() < 0.5 else 'raise'
+        return mode
 
-    # No-failure queries (should mirror baseline behavior)
-    for _ in range(no_fail):
-        src = rng.randrange(index.node_volume)
-        dst = rng.randrange(index.node_volume)
+    # none
+    for _ in range(none):
+        src = rng.randrange(nav.metadata.node_volume)
+        dst = rng.randrange(nav.metadata.node_volume)
         if src == dst:
             continue
-        clear_failures()
-        gen.set_current_node(index.id2name[src])
-        ok = goto(index, src, dst, hop_func=hop_func)
-        if ok and gen.CURRENT_NODE == index.id2name[dst]:
+        failures_map.clear()
+        gen.set_current_node(nav.metadata.id2name[src])
+        try:
+            ok = nav.goto(src, dst, log_output=False)
+        except RuntimeError:
+            ok = False
+        if ok and gen.CURRENT_NODE == nav.metadata.id2name[dst]:
             successes += 1
         else:
             failures += 1
 
-    # Single failure queries
-    sf_done = 0
-    while sf_done < single_fail:
-        src = rng.randrange(index.node_volume)
-        dst = rng.randrange(index.node_volume)
+    # single
+    sdone = 0
+    while sdone < single:
+        src = rng.randrange(nav.metadata.node_volume)
+        dst = rng.randrange(nav.metadata.node_volume)
         if src == dst:
             continue
-        static_path = build_static_path(index, src, dst, hop_func)
-        if not static_path or len(static_path) < 1:
+        path = static_path(nav, src, dst)
+        if not path:
             failures += 1
-            sf_done += 1
+            sdone += 1
             continue
-        # Build edges on static path
-        path_edges = []
+        edge_list = []
         cur = src
-        for hop in static_path:
-            path_edges.append((cur, hop))
+        for hop in path:
+            edge_list.append((cur, hop))
             cur = hop
-        # choose edge with branching if possible
         chosen = None
-        for (u, v) in path_edges:
-            if len(index.forward_map[u]) > 1:
-                chosen = (u, v)
+        for uv in edge_list:
+            if len(nav.metadata.forward_map[uv[0]]) > 1:
+                chosen = uv
                 break
         if chosen is None:
-            chosen = path_edges[0]
-        clear_failures()
-        set_failures([(index.id2name[chosen[0]], index.id2name[chosen[1]])], mode_selector, rng)
-        gen.set_current_node(index.id2name[src])
-        ok = goto(index, src, dst, hop_func=hop_func)
-        clear_failures()  # reset after query
-        if ok and gen.CURRENT_NODE == index.id2name[dst]:
+            chosen = edge_list[0]
+        failures_map.clear()
+        failures_map[chosen] = select_mode()
+        gen.set_current_node(nav.metadata.id2name[src])
+        try:
+            ok = nav.goto(src, dst, log_output=False)
+        except RuntimeError:
+            ok = False
+        if ok and gen.CURRENT_NODE == nav.metadata.id2name[dst]:
             successes += 1
         else:
             failures += 1
-        sf_done += 1
+        sdone += 1
 
-    # Multi failure queries (inject up to 2 failing edges along static path)
-    mf_done = 0
-    while mf_done < multi_fail:
-        src = rng.randrange(index.node_volume)
-        dst = rng.randrange(index.node_volume)
+    # multi (up to 2)
+    mdone = 0
+    while mdone < multi:
+        src = rng.randrange(nav.metadata.node_volume)
+        dst = rng.randrange(nav.metadata.node_volume)
         if src == dst:
             continue
-        static_path = build_static_path(index, src, dst, hop_func)
-        if not static_path or len(static_path) < 2:
+        path = static_path(nav, src, dst)
+        if not path or len(path) < 2:
             failures += 1
-            mf_done += 1
+            mdone += 1
             continue
-        path_edges = []
+        edge_list = []
         cur = src
-        for hop in static_path:
-            path_edges.append((cur, hop))
+        for hop in path:
+            edge_list.append((cur, hop))
             cur = hop
-        candidates = [e for e in path_edges if len(index.forward_map[e[0]]) > 1]
-        if len(candidates) < 2:
-            candidates = path_edges[:2]
+        branching = [uv for uv in edge_list if len(nav.metadata.forward_map[uv[0]]) > 1]
+        candidates = branching if branching else edge_list
         to_fail = candidates[:2]
-        fail_pairs = [(index.id2name[u], index.id2name[v]) for (u, v) in to_fail]
-        clear_failures()
-        set_failures(fail_pairs, mode_selector, rng)
-        gen.set_current_node(index.id2name[src])
-        ok = goto(index, src, dst, hop_func=hop_func)
-        clear_failures()
-        if ok and gen.CURRENT_NODE == index.id2name[dst]:
+        failures_map.clear()
+        for uv in to_fail:
+            failures_map[uv] = select_mode()
+        gen.set_current_node(nav.metadata.id2name[src])
+        try:
+            ok = nav.goto(src, dst, log_output=False)
+        except RuntimeError:
+            ok = False
+        if ok and gen.CURRENT_NODE == nav.metadata.id2name[dst]:
             successes += 1
         else:
             failures += 1
-        mf_done += 1
+        mdone += 1
 
     return successes, failures
 
-# ---------------- Memory estimation ----------------
+# ---------------- Serialization timing ----------------
 
-def memory_breakdown(index):
-    """Return detailed breakdown for compressed vs direct container memory (shallow).
-    Compressed-specific structures:
-      - block_of (list[int])
-      - col_kind (list[int])
-      - row_direct (list[Optional[list[int]]]) including inner row lists
-      - region_default (list[Optional[dict[int,int]]]) including dict containers
-      - exc_nodes (list[Optional[list[int]]]) including inner lists
-      - exc_hops (list[Optional[list[int]]]) including inner lists
-    Direct-specific structure:
-      - next_hop (list[list[int]]) including inner row lists
-    Note: We only count container shells with sys.getsizeof to avoid O(N^2) deep traversal cost.
-    """
-    # Compressed
-    comp_block_of = sys.getsizeof(index.block_of)
-    comp_col_kind = sys.getsizeof(index.col_kind)
-    comp_row_direct_list = sys.getsizeof(index.row_direct)
-    comp_row_direct_rows = sum(sys.getsizeof(row) for row in index.row_direct if row is not None)
-    comp_region_default_list = sys.getsizeof(index.region_default)
-    comp_region_default_dicts = sum(sys.getsizeof(d) for d in index.region_default if d is not None)
-    comp_exc_nodes_list = sys.getsizeof(index.exc_nodes)
-    comp_exc_nodes_rows = sum(sys.getsizeof(lst) for lst in index.exc_nodes if lst is not None)
-    comp_exc_hops_list = sys.getsizeof(index.exc_hops)
-    comp_exc_hops_rows = sum(sys.getsizeof(lst) for lst in index.exc_hops if lst is not None)
+def save_metadata(meta: Navigator.BaseMetadata | Navigator.FullMetadata, path: Path) -> float:
+    t0 = time.perf_counter()
+    meta.save(str(path))
+    return time.perf_counter() - t0
 
-    comp_total = (
-        comp_block_of + comp_col_kind +
-        comp_row_direct_list + comp_row_direct_rows +
-        comp_region_default_list + comp_region_default_dicts +
-        comp_exc_nodes_list + comp_exc_nodes_rows +
-        comp_exc_hops_list + comp_exc_hops_rows
-    )
-
-    direct_list = sys.getsizeof(index.next_hop)
-    direct_rows = sum(sys.getsizeof(row) for row in index.next_hop)
-    direct_total = direct_list + direct_rows
-
-    # Column stats
-    total_cols = index.node_volume
-    direct_cols = sum(1 for k in index.col_kind if k == 0)
-    region_cols = total_cols - direct_cols
-    avg_region_default_size = (sum(len(d) for d in index.region_default if d is not None) / max(1, region_cols)) if region_cols else 0.0
-    avg_exc_nodes = (sum(len(lst) for lst in index.exc_nodes if lst is not None) / max(1, region_cols)) if region_cols else 0.0
-
-    return {
-        "compressed": {
-            "block_of": comp_block_of,
-            "col_kind": comp_col_kind,
-            "row_direct_list": comp_row_direct_list,
-            "row_direct_rows": comp_row_direct_rows,
-            "region_default_list": comp_region_default_list,
-            "region_default_dicts": comp_region_default_dicts,
-            "exc_nodes_list": comp_exc_nodes_list,
-            "exc_nodes_rows": comp_exc_nodes_rows,
-            "exc_hops_list": comp_exc_hops_list,
-            "exc_hops_rows": comp_exc_hops_rows,
-            "total": comp_total,
-        },
-        "direct": {
-            "next_hop_list": direct_list,
-            "row_lists": direct_rows,
-            "total": direct_total,
-        },
-        "stats": {
-            "direct_cols": direct_cols,
-            "region_cols": region_cols,
-            "avg_region_default_size": avg_region_default_size,
-            "avg_exc_nodes": avg_exc_nodes,
-        }
-    }
+def load_metadata(path: Path) -> Tuple[Navigator.BaseMetadata | Navigator.FullMetadata, float]:
+    t0 = time.perf_counter()
+    loaded = Navigator.load_metadata(str(path))
+    return loaded, time.perf_counter() - t0
 
 # ---------------- Main ----------------
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--nodes", type=int, default=1000)
-    ap.add_argument("--queries", type=int, default=2000000)
-    ap.add_argument("--edge-prob", type=float, default=None)
-    ap.add_argument("--avg-out-degree", type=float, default=6.5, help="Target average out-degree per node (including backbone). Ignored if --edge-prob is provided.")
-    ap.add_argument("--seed", type=int, default=1145141919810)
-    ap.add_argument("--single-fail", type=float, default=0.1)
-    ap.add_argument("--multi-fail", type=float, default=0.05)
-    ap.add_argument("--fail-mode", choices=["raise", "stay", "mixed"], default="mixed")
+    ap.add_argument('--nodes', type=int, default=2000)
+    ap.add_argument('--queries', type=int, default=2000000)
+    ap.add_argument('--edge-prob', type=float, default=None)
+    ap.add_argument('--avg-out-degree', type=float, default=6.5)
+    ap.add_argument('--seed', type=int, default=time.time())
+    ap.add_argument('--single-fail', type=float, default=0.05)
+    ap.add_argument('--multi-fail', type=float, default=0.02)
+    ap.add_argument('--fail-mode', choices=['raise', 'stay', 'mixed'], default='mixed')
     args = ap.parse_args()
 
-    print(f"[phase] generate specs n={args.nodes} target_avg_out_degree={args.avg_out_degree} edge_prob={args.edge_prob}")
-    specs = gen.generate_specs(args.nodes, args.edge_prob, seed=args.seed, failing_edge_ratio=0.0, avg_out_degree=args.avg_out_degree)
-    wrap_actions_dynamic(specs)
-    realized = sum(len(s.actions) for s in specs) / len(specs)
-    print(f"[phase] realized_avg_out_degree={realized:.2f}")
+    # Phase: generate specs
+    t0 = time.perf_counter()
+    specs = generate_interfaces(args.nodes, args.edge_prob, args.seed, args.avg_out_degree)
+    gen_avg = sum(len(s.actions) for s in specs) / max(1, len(specs))
+    t_gen = time.perf_counter() - t0
+    print(f"[time] generate_specs={t_gen:.4f}s realized_avg_out_degree={gen_avg:.2f}")
 
-    print(f"[phase] compile index (silent)")
-    index = compile_specs(specs, prev=None, log_output=False)
+    # Phase: build full metadata (Navigator construction)
+    t0 = time.perf_counter()
+    metadata = Navigator.compile_metadata(specs, cached_metadata=None, log_output=False)
+    navigator = Navigator(specs, metadata=metadata)
+    t_build_full = time.perf_counter() - t0
+    print(f"[time] build_full_metadata={t_build_full:.4f}s nodes={navigator.metadata.node_volume}")
 
-    # Memory usage estimates
-    br = memory_breakdown(index)
-    comp_total = br["compressed"]["total"]
-    direct_total = br["direct"]["total"]
-    st = br["stats"]
-    print(
-        "[memory] compressed_total={c_total} (block_of={bo}, col_kind={ck}, row_direct_list={rdl}, row_direct_rows={rdr}, region_default_list={rdfl}, region_default_dicts={rdfd}, exc_nodes_list={enl}, exc_nodes_rows={enr}, exc_hops_list={ehl}, exc_hops_rows={ehr}); "
-        "direct_total={d_total} (next_hop_list={nl}, row_lists={rl}); ratio_direct_over_compressed={ratio:.2f}; cols direct={dc} region={rc} avg_region_default_size={ards:.2f} avg_exc_nodes_per_region={aen:.2f}".format(
-            c_total=comp_total,
-            bo=br["compressed"]["block_of"],
-            ck=br["compressed"]["col_kind"],
-            rdl=br["compressed"]["row_direct_list"],
-            rdr=br["compressed"]["row_direct_rows"],
-            rdfl=br["compressed"]["region_default_list"],
-            rdfd=br["compressed"]["region_default_dicts"],
-            enl=br["compressed"]["exc_nodes_list"],
-            enr=br["compressed"]["exc_nodes_rows"],
-            ehl=br["compressed"]["exc_hops_list"],
-            ehr=br["compressed"]["exc_hops_rows"],
-            d_total=direct_total,
-            nl=br["direct"]["next_hop_list"],
-            rl=br["direct"]["row_lists"],
-            ratio=(direct_total / max(1, comp_total)),
-            dc=st["direct_cols"],
-            rc=st["region_cols"],
-            ards=st["avg_region_default_size"],
-            aen=st["avg_exc_nodes"],
-        )
-    )
+    # Derive runtime metadata (BaseMetadata)
+    t0 = time.perf_counter()
+    base_meta = navigator.metadata.to_base() if isinstance(navigator.metadata, Navigator.FullMetadata) else navigator.metadata
+    t_to_base = time.perf_counter() - t0
+    print(f"[time] derive_runtime_metadata={t_to_base:.4f}s")
 
-    # Baseline compressed
-    print(f"[baseline-compressed] queries={args.queries}")
-    base_comp_success, base_comp_fail = run_baseline_compressed(index, specs, args.queries, seed=args.seed)
-    print(f"[baseline-compressed] success={base_comp_success} fail={base_comp_fail}")
+    # --- Serialization (save & load) first, so we can include file sizes in [memory] ---
+    with tempfile.TemporaryDirectory() as td:
+        full_path = Path(td) / 'navigator-full.metadata'
+        runtime_path = Path(td) / 'navigator-runtime.metadata'
+        t_save_full = save_metadata(navigator.metadata, full_path)
+        size_full = full_path.stat().st_size
+        t_save_runtime = save_metadata(base_meta, runtime_path)
+        size_runtime = runtime_path.stat().st_size
+        loaded_full, t_load_full = load_metadata(full_path)
+        loaded_runtime, t_load_runtime = load_metadata(runtime_path)
 
-    # Baseline direct next_hop (uncompressed table access)
-    print(f"[baseline-direct] queries={args.queries}")
-    base_direct_success, base_direct_fail = run_baseline_direct(index, specs, args.queries, seed=args.seed)
-    print(f"[baseline-direct] success={base_direct_success} fail={base_direct_fail}")
+    # Memory comparisons + serialized sizes (user-friendly, layered)
+    full_mem = memory_breakdown_full(navigator.metadata)
+    runtime_mem = memory_breakdown_runtime(base_meta)
+    compression = memory_compression(navigator.metadata)
 
-    # Failing phase uses compressed lookup (representative realistic path selection)
-    print(f"[failing-compressed] single_ratio={args.single_fail} multi_ratio={args.multi_fail} mode={args.fail_mode}")
-    fail_success, fail_fail = run_failing(index, specs, args.queries, args.single_fail, args.multi_fail,
-                                          seed=args.seed, use_direct_hop=False, fail_mode=args.fail_mode)
-    print(f"[failing-compressed] success={fail_success} fail={fail_fail}")
+    full_bytes = full_mem['full_object_bytes']
+    runtime_bytes = runtime_mem['runtime_object_bytes']
+    direct_bytes = compression['direct_overhead_bytes']
+    compact_bytes = compression['compressed_overhead_bytes']
+    direct_vs_compact_ratio = compression['direct_vs_compressed_ratio']
 
-    print("[summary] baseline_compressed_success={} baseline_compressed_fail={} baseline_direct_success={} baseline_direct_fail={} failing_success={} failing_fail={}".format(
-        base_comp_success, base_comp_fail, base_direct_success, base_direct_fail, fail_success, fail_fail))
+    runtime_reduction_pct = pct_reduction(full_bytes, runtime_bytes)
+    compression_saving_pct = pct_reduction(direct_bytes, compact_bytes)
+    file_reduction_pct = pct_reduction(size_full, size_runtime)
 
+    print("[memory]\n"
+          "  objects:\n"
+          f"    full_object:       {full_bytes} bytes ({format_bytes(full_bytes)})\n"
+          f"    runtime_object:    {runtime_bytes} bytes ({format_bytes(runtime_bytes)})\n"
+          f"    runtime_reduction: {runtime_reduction_pct:.2f}% vs full\n"
+          "  next_hop:\n"
+          f"    direct:            {direct_bytes} bytes ({format_bytes(direct_bytes)})\n"
+          f"    compact:           {compact_bytes} bytes ({format_bytes(compact_bytes)})\n"
+          f"    compact_ratio:     {direct_vs_compact_ratio:.2f}x (direct/compact)\n"
+          f"    compact_saving:    {compression_saving_pct:.2f}% vs direct\n"
+          "  serialized:\n"
+          f"    full_file:         {size_full} bytes ({format_bytes(size_full)})\n"
+          f"    runtime_file:      {size_runtime} bytes ({format_bytes(size_runtime)})\n"
+          f"    file_reduction:    {file_reduction_pct:.2f}% vs full")
 
-if __name__ == "__main__":
+    # Save/Load timings (sizes moved to [memory])
+    print(f"[time] save_full={t_save_full:.4f}s save_runtime={t_save_runtime:.4f}s")
+    print(f"[time] load_full={t_load_full:.4f}s load_runtime={t_load_runtime:.4f}s")
+
+    # Baseline queries (compressed static)
+    t0 = time.perf_counter()
+    base_success, base_fail = run_baseline(navigator, args.queries, args.seed)
+    t_baseline = time.perf_counter() - t0
+    print(f"[baseline] success={base_success} fail={base_fail} time={t_baseline:.4f}s")
+
+    # Failing queries
+    t0 = time.perf_counter()
+    fail_success, fail_fail = run_failing(navigator, args.queries, args.single_fail, args.multi_fail, args.seed, args.fail_mode)
+    t_failing = time.perf_counter() - t0
+    print(f"[failing] success={fail_success} fail={fail_fail} time={t_failing:.4f}s single_ratio={args.single_fail} multi_ratio={args.multi_fail} mode={args.fail_mode}")
+
+    print(f"[summary] baseline_success={base_success} baseline_fail={base_fail} failing_success={fail_success} failing_fail={fail_fail}")
+
+if __name__ == '__main__':
     main()
