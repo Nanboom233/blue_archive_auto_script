@@ -1,462 +1,803 @@
 import bisect
+import gzip
 import hashlib
-import itertools
+import pickle
 from array import array
 from collections import deque, defaultdict, Counter
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-
-@dataclass
-class NodeSpec:
-    name: str
-    description: str
-    features: list[Callable[[], bool]]  # runnable: env -> bool
-    actions: dict[str, Optional[Callable]]  # target_name -> runnable(env) 产生从本节点到目标的动作
-
-    def check(self) -> bool:
-        for feature in self.features:
-            if not feature():
-                return False
-        return True
-
-
-# ---------- 内核索引结构 ----------
-@dataclass
-class Index:
-    name2id: dict[str, int]
-    id2name: list[str]
-    topo_hash: str
-
-    # 图
-    node_volume: int
-    edges: set[tuple[int, int]]
-    forward_map: list[list[int]]
-    reverse_map: list[list[int]]
-
-    # 区域
-    block_of: list[int]  # node -> block_id
-    blocks: list[list[int]]  # block_id -> [nodes]
-    block_volume: int
-
-    # 全对下一跳与距离（m 行，n 列；即从 n 去 m 的第一跳）
-    next_hop: list[list[int]]  # 仍保留原始矩阵（可选：后续也可换成 array('h') 进一步省内存）
-    dist: list[list[int]]
-
-    # 紧凑列存储（逐列择优）
-    # col_kind[m]==0: 直接列，用 row_direct[m]
-    # col_kind[m]==1: 区域列，用 region_default[m] + exc_nodes[m]/exc_hops[m]
-    col_kind: list[int]  # 0=direct, 1=block
-    row_direct: list[Optional[array]]  # array('h') or None
-    region_default: list[Optional[array]]  # array('h') or None
-    exc_nodes: list[Optional[array]]  # array('h') or None (sorted node ids)
-    exc_hops: list[Optional[array]]  # array('h') or None (aligned with exc_nodes)
-
-    # 行为层
-    edge_handle: dict[tuple[int, int], Callable[[], None]]
-    validators: list[None | Callable[[], bool]]  # per node_id
-
-    # 扫描顺序：全表扫描的优先顺序（命中后 move-to-front）
-    scan_order: list[int]
-
-    # 增量所需
-    tree_edges_by_dst: dict[int, set[tuple[int, int]]]  # m -> {(u,v)...}
-    edge2dst: dict[tuple[int, int], set[int]]  # (u,v) -> {m,...}
-
-
-# ---------- 工具：稳定 ID 映射 ----------
-def build_stable_idmap(specs: list[NodeSpec],
-                       cached_idmap: Optional[Index]) -> tuple[dict[str, int], list[str], bool]:
-    if cached_idmap is None:
-        names = sorted([s.name for s in specs])
-        name2id = {n: i for i, n in enumerate(names)}
-        id2name = deepcopy(names)
-        changed = True
-    else:
-        name2id = dict(cached_idmap.name2id)
-        id2name = list(cached_idmap.id2name)
-        new_names = sorted([s.name for s in specs if s.name not in name2id])
-        for n in new_names:
-            name2id[n] = len(id2name)
-            id2name.append(n)
-        # 删除的名字保留墓碑（演示简单起见不做回收）
-        changed = (len(new_names) > 0)
-    return name2id, id2name, changed
-
-
-# ---------- 工具：抽取拓扑 + 行为绑定 ----------
-def build_graph(specs: list[NodeSpec], name2id: dict[str, int]):
-    node_length = len(name2id)
-    forward_map = [[] for _ in range(node_length)]
-    reverse_map = [[] for _ in range(node_length)]
-
-    edges = set()
-    # works as a set of existing edges and to avoid duplicate edges
-    edge_handle = dict()
-    node_features = [[] for _ in range(node_length)]
-
-    for spec in specs:
-        spec_id = name2id[spec.name]
-        node_features[spec_id].extend(spec.features)
-        for destination_name, act in spec.actions.items():
-            destination_id = name2id[destination_name]
-            if (spec_id, destination_id) not in edges:
-                edges.add((spec_id, destination_id))
-                forward_map[spec_id].append(destination_id)
-                reverse_map[destination_id].append(spec_id)
-            edge_handle[(spec_id, destination_id)] = act
-
-    # 邻接排序确保确定性
-    for spec_id in range(node_length):
-        forward_map[spec_id].sort()
-        reverse_map[spec_id].sort()
-    return node_length, edges, forward_map, reverse_map, edge_handle, node_features
-
-
-def compute_topo_hash(node_volume: int, edges: set[tuple[int, int]]) -> str:
-    data = bytearray()
-    data.extend(node_volume.to_bytes(4, 'little'))
-    for (u, v) in sorted(edges):
-        data.extend(u.to_bytes(4, 'little'))
-        data.extend(v.to_bytes(4, 'little'))
-    return hashlib.sha256(data).hexdigest()
-
-
-# ---------- 全对反向 BFS（构建下一跳、距离、树边集） ----------
 INF = 10 ** 9
 
 
-def reverse_bfs(node_volume: int, reverse_map: list[list[int]]):
-    next_hop = [[-1] * node_volume for _ in range(node_volume)]  # m行n列
-    distances = [[INF] * node_volume for _ in range(node_volume)]
-    tree_edges_by_dst: dict[int, set[tuple[int, int]]] = {m: set() for m in range(node_volume)}
-    # tree_edges_by_dst stores the BFS tree edges for each destination m
-    # this helps build edge2dst mapping and incremental updates
-    # tree_edge_by_dist: m -> set of (u,v) edges in BFS tree towards m
+class Navigator:
+    @dataclass
+    class Interface:
+        name: str
+        description: str
+        features: list[Callable[[], bool]]
+        actions: dict[str, Optional[Callable]]
 
-    # TODO: entry node validation，检测不可达节点
-    for m in range(node_volume):
-        dq = deque()
-        dq.append(m)
-        distances[m][m] = 0
-        while dq:
-            x = dq.popleft()
-            for u in reverse_map[x]:  # 原图 u->x
-                if distances[m][u] == INF:  # 第一次访问
-                    distances[m][u] = distances[m][x] + 1
-                    next_hop[m][u] = x  # 从 u 走向 m 的第一步是 x
-                    tree_edges_by_dst[m].add((u, x))
-                    dq.append(u)
-        # m 自己的下一跳可定义为自身或 -1，这里设置为 m（对齐“已在目标”）
-        next_hop[m][m] = m
-    return next_hop, distances, tree_edges_by_dst
+        def validate(self) -> bool:
+            for feature in self.features:
+                if not feature():
+                    return False
+            return True
 
+    @dataclass
+    class BaseMetadata:
+        # ====== RUNTIME METADATA ======
+        # Required to perform lookups and fallback BFS
 
-# ---------- 区域压缩：区域默认 + 例外 ----------
-def split_blocks(node_volume: int,
-                 forward_map: list[list[int]],
-                 reverse_map: list[list[int]],
-                 block_size: int = 32) -> tuple[list[int], list[list[int]], int, int]:
-    # 生成无向邻接用于 BFS 排序
-    undirected_map = [sorted(set(forward_map[u] + reverse_map[u])) for u in range(node_volume)]
-    # 得到稳定的 BFS 顺序 同时校验图
-    dq = deque([0])
-    seen = [False] * node_volume
-    seen[0] = True
-    order_list = []
-    while dq:
-        u = dq.popleft()
-        order_list.append(u)
-        for w in undirected_map[u]:
-            if not seen[w]:
-                seen[w] = True
-                dq.append(w)
-    if len(order_list) != node_volume:
-        raise ValueError("Graph is not a single weakly connected component")
+        name2id: dict[str, int]  # interface_name -> interface_id
+        id2name: list[str]  # interface_id -> interface_name
 
-    block_of = [-1] * node_volume
-    blocks: list[list[int]] = []
-    current_block_id = 0
-    for i in range(0, node_volume, block_size):
-        block = order_list[i:i + block_size]
-        blocks.append(block)
-        for u in block:
-            block_of[u] = current_block_id
-        current_block_id += 1
-    blocks_volume = len(blocks)
+        node_volume: int  # number of interfaces
+        forward_map: list[list[int]]  # interface_id -> [next_interface_ids]
 
-    return block_of, blocks, blocks_volume, block_size
+        block_of: list[int]  # interface_id -> block_id
 
+        block_compacted: array  # array('b') of 0/1
+        # block_compressed == False : use block_uncompacted_hops to lookup
+        # block_compressed == True : use block_compacted_hops + block_except_* to lookup
+        block_uncompacted_hops: list[
+            Optional[array]]  # destination_id -> next_hops (array('h'): current_id -> next_hop_id)
+        block_compacted_hops: list[Optional[array]]  # block_id -> next_hops(array('h'):  -> next_hop_id)
+        block_except_nodes: list[Optional[array]]  # destination_id -> node_ids (array('h'))
+        block_except_hops: list[
+            Optional[
+                array]]  # destination_id -> next_hops (array('h'): self.metadata_of_(block_except_nodes) -> next_hop_id)
 
-def build_compact_columns(node_volume: int,
+        @classmethod
+        def _pack_arr(cls, a: Optional[array]) -> Optional[dict]:
+            if a is None:
+                return None
+            return {'typecode': a.typecode, 'len': len(a), 'bytes': a.tobytes()}
+
+        @classmethod
+        def _unpack_arr(cls, blob: Optional[dict]) -> Optional[array]:
+            if blob is None:
+                return None
+            a = array(blob['typecode'])
+            a.frombytes(blob['bytes'])
+            assert len(a) == blob['len']
+            return a
+
+        @classmethod
+        def _pack_arr_list(cls, lst: list[Optional[array]]) -> list[Optional[dict]]:
+            return [cls._pack_arr(x) for x in lst]
+
+        @classmethod
+        def _unpack_arr_list(cls, lst: list[Optional[dict]]) -> list[Optional[array]]:
+            return [cls._unpack_arr(x) for x in lst]
+
+        def _to_payload(self) -> dict:
+            return {
+                'kind': 'base',
+                'version': 1,
+                'name2id': self.name2id,
+                'id2name': self.id2name,
+                'node_volume': self.node_volume,
+                'forward_map': self.forward_map,
+                'block_of': self.block_of,
+                'block_compacted': {
+                    'typecode': self.block_compacted.typecode,
+                    'len': len(self.block_compacted),
+                    'bytes': self.block_compacted.tobytes()
+                },
+                'block_uncompacted_hops': self._pack_arr_list(self.block_uncompacted_hops),
+                'block_compacted_hops': self._pack_arr_list(self.block_compacted_hops),
+                'block_except_nodes': self._pack_arr_list(self.block_except_nodes),
+                'block_except_hops': self._pack_arr_list(self.block_except_hops),
+            }
+
+        def save(self, path: str) -> None:
+            data = pickle.dumps(self._to_payload(), protocol=pickle.HIGHEST_PROTOCOL)
+            with open(path, 'wb') as f:
+                f.write(gzip.compress(data))
+
+        @classmethod
+        def from_payload(cls, payload: dict) -> Navigator.BaseMetadata:
+            assert payload.get('version', -1) == 1, "unsupported BaseMetadata version"
+            bc = payload['block_compacted']
+            block_compacted = array(bc['typecode'])
+            block_compacted.frombytes(bc['bytes'])
+            assert len(block_compacted) == bc['len']
+            return cls(
+                name2id=payload['name2id'],
+                id2name=payload['id2name'],
+                node_volume=payload['node_volume'],
+                forward_map=payload['forward_map'],
+                block_of=payload['block_of'],
+                block_compacted=block_compacted,
+                block_uncompacted_hops=cls._unpack_arr_list(payload['block_uncompacted_hops']),
+                block_compacted_hops=cls._unpack_arr_list(payload['block_compacted_hops']),
+                block_except_nodes=cls._unpack_arr_list(payload['block_except_nodes']),
+                block_except_hops=cls._unpack_arr_list(payload['block_except_hops']),
+            )
+
+    @dataclass
+    class FullMetadata(BaseMetadata):
+        # ====== FULL METADATA ======
+        # Required for rebuild and incremental update
+
+        topo_hash: str  # hash of topology structure (node_volume + edges)
+        edges: set[tuple[int, int]]  # set of (u,v) edges
+        reverse_map: list[list[int]]  # interface_id -> [previous_interface_ids]
+
+        blocks: list[list[int]]  # block_id -> [node_ids]
+        block_volume: int  # number of blocks
+
+        next_hop: list[list[int]]  # destination_id -> [current_id -> next_hop_id]
+        distances: list[list[int]]  # destination_id -> [current_id -> distance]
+
+        bfs_preferred_edges: dict[int, set[tuple[int, int]]]  # destination_id -> {(u,v)...}
+        edge2destination: dict[tuple[int, int], set[int]]  # (u,v) -> {destination_ids}
+
+        def to_base(self) -> Navigator.BaseMetadata:
+            return Navigator.BaseMetadata(
+                name2id=self.name2id,
+                id2name=self.id2name,
+                node_volume=self.node_volume,
+                forward_map=self.forward_map,
+                block_of=self.block_of,
+                block_compacted=self.block_compacted,
+                block_uncompacted_hops=self.block_uncompacted_hops,
+                block_compacted_hops=self.block_compacted_hops,
+                block_except_nodes=self.block_except_nodes,
+                block_except_hops=self.block_except_hops
+            )
+
+        def _to_payload(self) -> dict:
+            base = super()._to_payload()
+            base['kind'] = 'full'
+            base.update({
+                'topo_hash': self.topo_hash,
+                'edges': self.edges,
+                'reverse_map': self.reverse_map,
+                'blocks': self.blocks,
+                'block_volume': self.block_volume,
+                'next_hop': self.next_hop,
+                'distances': self.distances,
+                'bfs_preferred_edges': self.bfs_preferred_edges,
+                'edge2destination': self.edge2destination,
+            })
+            return base
+
+        def save(self, path: str) -> None:
+            data = pickle.dumps(self._to_payload(), protocol=pickle.HIGHEST_PROTOCOL)
+            with open(path, 'wb') as f:
+                f.write(gzip.compress(data))
+
+        @classmethod
+        def from_payload(cls, payload: dict) -> Navigator.FullMetadata:
+            assert payload.get('version', 1) == 1, "unsupported FullMetadata version"
+            bc = payload['block_compacted']
+            block_compacted = array(bc['typecode'])
+            block_compacted.frombytes(bc['bytes'])
+            assert len(block_compacted) == bc['len']
+            return cls(
+                name2id=payload['name2id'],
+                id2name=payload['id2name'],
+                topo_hash=payload['topo_hash'],
+                node_volume=payload['node_volume'],
+                edges=payload['edges'],
+                forward_map=payload['forward_map'],
+                reverse_map=payload['reverse_map'],
+                block_of=payload['block_of'],
+                blocks=payload['blocks'],
+                block_volume=payload['block_volume'],
+                next_hop=payload['next_hop'],
+                distances=payload['distances'],
+                block_compacted=block_compacted,
+                block_uncompacted_hops=cls._unpack_arr_list(payload['block_uncompacted_hops']),
+                block_compacted_hops=cls._unpack_arr_list(payload['block_compacted_hops']),
+                block_except_nodes=cls._unpack_arr_list(payload['block_except_nodes']),
+                block_except_hops=cls._unpack_arr_list(payload['block_except_hops']),
+                bfs_preferred_edges=payload['bfs_preferred_edges'],
+                edge2destination=payload['edge2destination'],
+            )
+
+    @staticmethod
+    def compile_metadata(interfaces: list[Interface], cached_metadata: Optional[FullMetadata] = None,
+                         log_output: bool = True) -> FullMetadata:
+
+        # noinspection PyShadowingNames
+        def build_idmap(interfaces: list[Interface],
+                        cached_idmap: Optional[Metadata]) -> tuple[dict[str, int], list[str]]:
+            if cached_idmap is None:
+                # use sort to ensure stable id assignment
+                names = sorted([s.name for s in interfaces])
+                name2id = {n: i for i, n in enumerate(names)}
+                id2name = deepcopy(names)
+            else:
+                name2id: dict[str, int] = cached_idmap.name2id
+                id2name: list[str] = cached_idmap.id2name
+                new_names: list[str] = sorted([s.name for s in interfaces if s.name not in name2id])
+                for n in new_names:
+                    name2id[n] = len(id2name)
+                    id2name.append(n)
+            return name2id, id2name
+
+        # noinspection PyShadowingNames
+        def build_graph(interfaces: list[Interface], name2id: dict[str, int]) -> tuple[
+            int, set[tuple[int, int]], list[list[int]], list[list[int]]]:
+            """
+            Args:
+                interfaces: list of Interface specs
+                name2id: interface_name -> interface_id
+
+            Returns:
+                interface_volume, edges, forward_map, reverse_map
+
+            Build the directed graph from interface specs.
+            """
+
+            interface_volume = len(name2id)
+            forward_map = [[] for _ in range(interface_volume)]
+            reverse_map = [[] for _ in range(interface_volume)]
+
+            edges = set()
+            # works as a set of existing edges and to avoid duplicate edges
+
+            for spec in interfaces:
+                spec_id = name2id[spec.name]
+                for destination_name, act in spec.actions.items():
+                    destination_id = name2id[destination_name]
+                    if (spec_id, destination_id) not in edges:
+                        edges.add((spec_id, destination_id))
+                        forward_map[spec_id].append(destination_id)
+                        reverse_map[destination_id].append(spec_id)
+
+            for spec_id in range(interface_volume):
+                # sort to ensure stable map (for hash computation)
+                forward_map[spec_id].sort()
+                reverse_map[spec_id].sort()
+            return interface_volume, edges, forward_map, reverse_map
+
+        # noinspection PyShadowingNames
+        def compute_topo_hash(interface_volume: int, edges: set[tuple[int, int]]) -> str:
+            """
+            Args:
+                interface_volume: number of interfaces
+                edges: set of (u,v) edges
+
+            Returns:
+                Hashes of (interface_volume + sorted edges)
+            """
+            data = bytearray()
+            data.extend(interface_volume.to_bytes(4, 'little'))
+            for (u, v) in sorted(edges):
+                data.extend(u.to_bytes(4, 'little'))
+                data.extend(v.to_bytes(4, 'little'))
+            return hashlib.sha256(data).hexdigest()
+
+        # noinspection PyShadowingNames
+        def reverse_bfs(node_volume: int, reverse_map: list[list[int]]) \
+            -> tuple[list[list[int]], list[list[int]], dict[int, set[tuple[int, int]]]]:
+            """
+                Args:
+                    node_volume: number of nodes
+                    reverse_map: node_id -> [previous_node_ids]
+                Returns:
+                    Generate original next_hop, distances and bfs_preferred_edges mapping.
+
+                Perform Reverse-BFS from each node m in the reverse graph to compute
+                the next hop and distance for all nodes to reach m.
+            """
+
+            next_hop = [[-1] * node_volume for _ in range(node_volume)]
+            distances = [[INF] * node_volume for _ in range(node_volume)]
+            bfs_preferred_edges: dict[int, set[tuple[int, int]]] = {m: set() for m in range(node_volume)}
+            # bfs_preferred_edges stores the tree edges used by BFS for each destination m
+            # this helps build edge2destination mapping and incremental updates
+            # tree_edge_by_dist: m -> set of (u,v) edges in BFS tree towards m
+
+            # TODO: entry node validation，检测不可达节点
+            for m in range(node_volume):
+                dq = deque()
+                dq.append(m)
+                distances[m][m] = 0
+                while dq:
+                    x = dq.popleft()
+                    for u in reverse_map[x]:  # u -> x
+                        if distances[m][u] == INF:  # first time visit: closest path
+                            distances[m][u] = distances[m][x] + 1
+                            next_hop[m][u] = x  # from u to m, next hop is x
+                            bfs_preferred_edges[m].add((u, x))
+                            dq.append(u)
+                next_hop[m][m] = m  # we define next_hop to self as self
+            return next_hop, distances, bfs_preferred_edges
+
+        # noinspection PyShadowingNames
+        def split_blocks(node_volume: int,
+                         forward_map: list[list[int]],
+                         reverse_map: list[list[int]],
+                         block_size: int = 32) -> tuple[list[int], list[list[int]], int, int]:
+            """
+                Args:
+                    node_volume: number of nodes
+                    forward_map: node_id -> [next_node_ids]
+                    reverse_map: node_id -> [previous_node_ids]
+                    block_size: desired block size
+                Returns:
+                    block_of, blocks, blocks_volume, block_size
+
+                Split nodes into blocks using BFS order for further compression.
+            """
+
+            # run bfs starting from node 0 to get a traversal order
+            # we use the order to build blocks, which helps compression edges
+            # (the nodes in the same block are likely to be close in the graph
+            # so that their paths to far places are similar)
+            undirected_map = [sorted(set(forward_map[u] + reverse_map[u])) for u in range(node_volume)]
+            dq = deque([0])
+            seen = [False] * node_volume
+            seen[0] = True
+            order_list = []
+            while dq:
+                u = dq.popleft()
+                order_list.append(u)
+                for w in undirected_map[u]:
+                    if not seen[w]:
+                        seen[w] = True
+                        dq.append(w)
+
+            # we verify that the graph is a single weakly connected component
+            # because we haven't implement multiple component here currently
+            assert len(order_list) == node_volume, "Graph is not a single weakly connected component"
+
+            block_of = [-1] * node_volume
+            blocks: list[list[int]] = []
+            current_block_id = 0
+            for i in range(0, node_volume, block_size):
+                block = order_list[i:i + block_size]
+                blocks.append(block)
+                for u in block:
+                    block_of[u] = current_block_id
+                current_block_id += 1
+            blocks_volume = len(blocks)
+
+            return block_of, blocks, blocks_volume, block_size
+
+        # noinspection PyShadowingNames
+        def compact_block(node_volume: int,
                           block_of: list[int],
                           block_volume: int,
                           next_hop: list[list[int]]):
-    # 输出结构
-    col_kind: list[int] = [0] * node_volume
-    row_direct: list[Optional[array]] = [None] * node_volume
-    region_default: list[Optional[array]] = [None] * node_volume
-    exc_nodes: list[Optional[array]] = [None] * node_volume
-    exc_hops: list[Optional[array]] = [None] * node_volume
+            """
+            Args:
+                node_volume: number of nodes
+                block_of: node_id -> block_id
+                block_volume: number of blocks
+                next_hop: destination_id -> [current_id -> next_hop_id]
 
-    for m in range(node_volume):
-        # 统计每块众数
-        counts_per_block: dict[int, Counter] = defaultdict(Counter)
-        for n in range(node_volume):
-            rid = block_of[n]
-            hop = next_hop[m][n]
-            counts_per_block[rid][hop] += 1
+            Returns:
+                block_compacted, block_uncompacted_hops, block_compacted_hops, block_except_nodes, block_except_hops
 
-        # 构建区域默认数组（array('h')，支持 -1）
-        default_arr = array('h', [-1] * block_volume)
-        for rid in range(block_volume):
-            cnt = counts_per_block.get(rid)
-            if cnt and len(cnt) > 0:
-                mode_val, _ = cnt.most_common(1)[0]
-                default_arr[rid] = int(mode_val)
-            else:
-                default_arr[rid] = -1
+            Compact the next_hop columns using block-wise mode + exceptions.
+            For each destination, we count the mode hop per block,
+            then build a default array and an exception list.
+            We estimate the storage cost of both direct and compacted formats,
+            and choose the better one.
+            """
 
-        # 构建例外稀疏数组（节点按升序）
-        ex_nodes = array('h')
-        ex_hops = array('h')
-        exceptions = 0
-        for n in range(node_volume):
-            rid = block_of[n]
-            hop = next_hop[m][n]
-            if hop != default_arr[rid]:
-                ex_nodes.append(n)
-                ex_hops.append(int(hop))
-                exceptions += 1
+            block_compacted: array = array('b', [0] * node_volume)
+            block_uncompacted_hops: list[Optional[array]] = [None] * node_volume
+            block_compacted_hops: list[Optional[array]] = [None] * node_volume
+            block_except_nodes: list[Optional[array]] = [None] * node_volume
+            block_except_hops: list[Optional[array]] = [None] * node_volume
 
-        # 估算并择优
-        bytes_direct = 2 * node_volume
-        bytes_region = 2 * block_volume + 4 * exceptions
+            for dest_id in range(node_volume):
+                # count the mode hop per block
+                hop_counts_per_block: dict[int, Counter] = defaultdict(Counter)
+                for n in range(node_volume):
+                    block_id = block_of[n]
+                    hop_counts_per_block[block_id][next_hop[dest_id][n]] += 1
 
-        if bytes_region < bytes_direct:
-            # 采用区域列
-            col_kind[m] = 1
-            region_default[m] = default_arr
-            exc_nodes[m] = ex_nodes
-            exc_hops[m] = ex_hops
-            row_direct[m] = None
-        else:
-            # 采用直接列
-            col_kind[m] = 0
-            row_direct[m] = array('h', (int(next_hop[m][n]) for n in range(node_volume)))
-            region_default[m] = None
-            exc_nodes[m] = None
-            exc_hops[m] = None
+                default_arr = array('h', [-1] * block_volume)
+                for block_id in range(block_volume):
+                    cnt = hop_counts_per_block.get(block_id)
+                    if cnt and len(cnt) > 0:
+                        mode_val, _ = cnt.most_common(1)[0]
+                        default_arr[block_id] = int(mode_val)
+                    else:
+                        default_arr[block_id] = -1
+                # build exception lists
+                ex_nodes = array('h')
+                ex_hops = array('h')
+                exception_node_volume = 0
+                for n in range(node_volume):
+                    block_id = block_of[n]
+                    hop = next_hop[dest_id][n]
+                    if hop != default_arr[block_id]:
+                        ex_nodes.append(n)
+                        ex_hops.append(int(hop))
+                        exception_node_volume += 1
 
-    return col_kind, row_direct, region_default, exc_nodes, exc_hops
+                # estimate storage cost and choose the better one
+                bytes_direct = 2 * node_volume
+                bytes_region = 2 * block_volume + 4 * exception_node_volume
 
+                if bytes_region < bytes_direct:
+                    # use compacted block is better
+                    block_compacted[dest_id] = True
+                    block_compacted_hops[dest_id] = default_arr
+                    block_except_nodes[dest_id] = ex_nodes
+                    block_except_hops[dest_id] = ex_hops
+                    block_uncompacted_hops[dest_id] = None
+                else:
+                    # use direct hops (next_hops) is better
+                    block_compacted[dest_id] = False
+                    block_uncompacted_hops[dest_id] = array('h',
+                                                            (int(next_hop[dest_id][n]) for n in range(node_volume)))
+                    block_compacted_hops[dest_id] = None
+                    block_except_nodes[dest_id] = None
+                    block_except_hops[dest_id] = None
 
-# ---------- 查询：通过区域压缩结构取下一跳 ----------
-def lookup_next_hop(idx: Index, current_node_id: int, destination_node_id: int) -> int:
-    kind = idx.col_kind[destination_node_id]
-    if kind == 0:
-        # 直接列：O(1) 取值
-        row = idx.row_direct[destination_node_id]
-        # row 不应为 None
-        return row[current_node_id] if row is not None else -1
-    else:
-        # 区域列：先查例外（二分），未命中用默认
-        nodes = idx.exc_nodes[destination_node_id]
-        hops = idx.exc_hops[destination_node_id]
-        if nodes is not None and len(nodes) > 0:
-            pos = bisect.bisect_left(nodes, current_node_id)
-            if pos < len(nodes) and nodes[pos] == current_node_id:
-                return hops[pos]
-        block_id = idx.block_of[current_node_id]
-        defaults = idx.region_default[destination_node_id]
-        return defaults[block_id] if defaults is not None else -1
+            return block_compacted, block_uncompacted_hops, block_compacted_hops, block_except_nodes, block_except_hops
 
+        def debug_print(*args, **kwargs):
+            if log_output:
+                print(*args, **kwargs)
 
-# ---------- 在线 BFS 兜底（可选避开某条边） ----------
-def fallback_next_hop(index: Index, current_node_id: int, destination_node_id: int,
-                      avoid_edge: Optional[set[tuple[int, int]]] = None) -> None | list[int]:
-    if current_node_id == destination_node_id:
-        return []
-    path = []
-    node_volume = index.node_volume
-    dq = deque([current_node_id])
-    parent = [-1] * node_volume
-    seen = [False] * node_volume
-    seen[current_node_id] = True
-    while dq:
-        u = dq.popleft()
-        for next_node_id in index.forward_map[u]:
-            if avoid_edge is not None and (u, next_node_id) in avoid_edge:
-                continue
-            if not seen[next_node_id]:
-                seen[next_node_id] = True
-                parent[next_node_id] = u
-                if next_node_id == destination_node_id:
-                    # 回溯第一步
-                    cur = next_node_id
-                    while parent[cur] != current_node_id:
-                        path.append(cur)
-                        cur = parent[cur]
-                    path.append(cur)
-                    path.reverse()
-                    return path
-                dq.append(next_node_id)
-    return None
+        name2id, id2name = build_idmap(interfaces, cached_metadata)
 
+        node_volume, edges, forward_map, reverse_map = build_graph(interfaces, name2id)
+        topo_hash = compute_topo_hash(node_volume, edges)
 
-# ---------- 编译（全量或增量） ----------
-def compile_specs(specs: list[NodeSpec], prev: Optional[Index] = None, log_output: bool = True) -> Index:
-    name2id, id2name, _ = build_stable_idmap(specs, prev)
+        # if the topology is unchanged, we could use cached metadata safely
+        if cached_metadata is not None and topo_hash == cached_metadata.topo_hash:
+            debug_print("[build] topology unchanged, use cached metadata")
+            return cached_metadata
 
-    node_volume, edges, forward, reverse_map, edge_handle, node_features = build_graph(specs, name2id)
-    topo_hash = compute_topo_hash(node_volume, edges)
+        ################ Increment build ################
+        # we do an incremental rebuild when
+        # 1.the node volume is unchanged AND
+        # 2.the number of changed edges is small(less than 1/3 of node volume)
+        increment_available = False
+        if cached_metadata is not None and cached_metadata.node_volume == node_volume:
+            added_edges = edges - cached_metadata.edges
+            removed_edges = cached_metadata.edges - edges
+            if len(added_edges) + len(removed_edges) <= max(1, node_volume // 3):
+                increment_available = True
 
-    # 如果拓扑未变，直接复用结构（只更新行为层）
-    if prev is not None and topo_hash == prev.topo_hash:
-        print("[build] topology unchanged -> reuse index; only update callables") if log_output else None
-        scan_order = list(itertools.chain.from_iterable(prev.blocks)) if prev.blocks else list(range(node_volume))
-        validators: list[None | Callable[[], bool]] = [None] * node_volume
-        for node in specs:
-            validators[name2id[node.name]] = node.check
+        if increment_available:
+            added_edges = edges - cached_metadata.edges
+            removed_edges = cached_metadata.edges - edges
+            debug_print(f"[build] incremental rebuild: +{len(added_edges)} -{len(removed_edges)}")
+            debug_print(f"[build] Added edges: {[(id2name[u], id2name[v]) for u, v in added_edges]}")
+            debug_print(f"[build] Removed edges: {[(id2name[u], id2name[v]) for u, v in removed_edges]}")
 
-        return Index(
-            name2id=name2id, id2name=id2name, topo_hash=topo_hash,
-            node_volume=prev.node_volume, edges=prev.edges,
-            forward_map=prev.forward_map, reverse_map=prev.reverse_map,
-            block_of=prev.block_of, blocks=prev.blocks, block_volume=prev.block_volume,
-            next_hop=prev.next_hop, dist=prev.dist,
-            col_kind=prev.col_kind,
-            row_direct=prev.row_direct,
-            region_default=prev.region_default,
-            exc_nodes=prev.exc_nodes,
-            exc_hops=prev.exc_hops,
-            edge_handle=edge_handle,
-            validators=validators,
-            scan_order=scan_order,
-            tree_edges_by_dst=prev.tree_edges_by_dst, edge2dst=prev.edge2dst
-        )
+            # copy from cache
+            next_hop = [row[:] for row in cached_metadata.next_hop]
+            distances = [row[:] for row in cached_metadata.distances]
+            bfs_preferred_edges = {m: set(edges) for m, edges in
+                                   cached_metadata.bfs_preferred_edges.items()}
+            edge2destination = {edge: set(destination) for edge, destination in
+                                cached_metadata.edge2destination.items()}
 
-    # 增量：如果 prev 存在且拓扑变动小，尝试部分重建
-    if prev is not None and prev.node_volume == node_volume:
-        added = edges - prev.edges
-        removed = prev.edges - edges
-        if len(added) + len(removed) <= max(1, node_volume // 3):
-            # we do an incremental rebuild when the number of changed edges is small(1/3 of node volume)
-            print(f"[build] incremental rebuild: +{len(added)} -{len(removed)}") if log_output else None
-            print(f"[build] Added edges: {[(id2name[u], id2name[v]) for u, v in added]}") if log_output else None
-            print(f"[build] Removed edges: {[(id2name[u], id2name[v]) for u, v in removed]}") if log_output else None
-            # 从 prev 拷贝
-            next_hop = [row[:] for row in prev.next_hop]
-            dist = [row[:] for row in prev.dist]
-            tree_edges_by_dst = {m: set(edges) for m, edges in prev.tree_edges_by_dst.items()}
-            edge2dst = {edge: set(destination) for edge, destination in prev.edge2dst.items()}
+            # a set of destination ids that need to recompute BFS tree
+            affected_destinations: set[int] = set()
 
-            # 受影响目的地集合
-            affected: set[int] = set()
+            for edge in removed_edges:
+                for destination_id in edge2destination.get(edge, set()):
+                    affected_destinations.add(destination_id)
+            for (u, v) in added_edges:
+                for destination_id in range(node_volume):
+                    if cached_metadata.distances[destination_id][v] < INF and 1 + \
+                        cached_metadata.distances[destination_id][v] < \
+                        cached_metadata.distances[destination_id][u]:
+                        affected_destinations.add(destination_id)
 
-            # 删除边：所有使用该边作为 BFS 树边的目的地都受影响
-            for edge in removed:
-                for m in edge2dst.get(edge, set()):
-                    affected.add(m)
+            debug_print(f"[build] affected destinations: {affected_destinations}")
 
-            # 新增边：若 1 + dist[m][v] < dist[m][u] 则受影响
-            for (u, v) in added:
-                for m in range(node_volume):
-                    if prev.dist[m][v] < INF and 1 + prev.dist[m][v] < prev.dist[m][u]:
-                        affected.add(m)
+            for destination_id in affected_destinations:
+                # clean up old edge2destination cache of affected destinations
+                for edge in bfs_preferred_edges.get(destination_id, set()):
+                    if edge in edge2destination and destination_id in edge2destination[edge]:
+                        edge2destination[edge].remove(destination_id)
+                        if not edge2destination[edge]:
+                            edge2destination.pop(edge, None)
 
-            # 对受影响目的地重算反向 BFS 列
-            for m in affected:
-                # 清理旧 edge2dst 关联
-                for edge in tree_edges_by_dst.get(m, set()):
-                    if edge in edge2dst and m in edge2dst[edge]:
-                        edge2dst[edge].remove(m)
-                        if not edge2dst[edge]:
-                            edge2dst.pop(edge, None)
-
-                # 重算
-                dq = deque([m])
-                dist[m] = [INF] * node_volume
-                dist[m][m] = 0
-                next_hop[m] = [-1] * node_volume
-                tree_edges_by_dst[m] = set()
+                # re-run Reverse-BFS for affected destinations
+                dq = deque([destination_id])
+                distances[destination_id] = [INF] * node_volume
+                distances[destination_id][destination_id] = 0
+                next_hop[destination_id] = [-1] * node_volume
+                bfs_preferred_edges[destination_id] = set()
                 while dq:
                     x = dq.popleft()
                     for uu in reverse_map[x]:
-                        if dist[m][uu] == INF:
-                            dist[m][uu] = dist[m][x] + 1
-                            next_hop[m][uu] = x
-                            tree_edges_by_dst[m].add((uu, x))
-                            edge2dst.setdefault((uu, x), set()).add(m)
+                        if distances[destination_id][uu] == INF:
+                            distances[destination_id][uu] = distances[destination_id][x] + 1
+                            next_hop[destination_id][uu] = x
+                            bfs_preferred_edges[destination_id].add((uu, x))
+                            edge2destination.setdefault((uu, x), set()).add(destination_id)
                             dq.append(uu)
-                next_hop[m][m] = m
+                next_hop[destination_id][destination_id] = destination_id
 
-            # 区域化可沿用旧划分（小改动不重分区），仅重写压缩列
-            block_of, blocks, blocks_volume = prev.block_of, prev.blocks, prev.block_volume
-            col_kind, row_direct, region_default, exc_nodes, exc_hops = build_compact_columns(
+            # use cached block structure, no need to split again (no nodes added_edges/removed_edges)
+            # we only need to compact the blocks again
+            block_of, blocks, blocks_volume = cached_metadata.block_of, cached_metadata.blocks, cached_metadata.block_volume
+            block_compacted, block_uncompacted_hops, block_compacted_hops, block_except_nodes, block_except_hops = compact_block(
+                node_volume, block_of, blocks_volume, next_hop
+            )
+        else:
+            ################ Full build ################
+            debug_print("[build] full build")
+
+            # run reverse-bfs for all nodes to build next_hop
+            next_hop, distances, bfs_preferred_edges = reverse_bfs(node_volume, reverse_map)
+
+            # split nodes into blocks to compress next_hop columns
+            block_of, blocks, blocks_volume, block_size = split_blocks(node_volume, forward_map, reverse_map)
+            debug_print(f"[build] chosen block_size={block_size}, blocks_volume={blocks_volume}")
+            (block_compacted, block_uncompacted_hops,
+             block_compacted_hops, block_except_nodes, block_except_hops) = compact_block(
                 node_volume, block_of, blocks_volume, next_hop
             )
 
-            scan_order = list(itertools.chain.from_iterable(blocks)) if blocks else list(range(node_volume))
-            validators: list[None | Callable[[], bool]] = [None] * node_volume
-            for node in specs:
-                validators[name2id[node.name]] = node.check
+            edge2destination: dict[tuple[int, int], set[int]] = defaultdict(set)
+            for destination_id, tree_edges in bfs_preferred_edges.items():
+                for tree_edge in tree_edges:
+                    edge2destination[tree_edge].add(destination_id)
 
-            return Index(
-                name2id=name2id, id2name=id2name, topo_hash=topo_hash,
-                node_volume=node_volume, edges=edges, forward_map=forward, reverse_map=reverse_map,
-                block_of=block_of, blocks=blocks, block_volume=blocks_volume,
-                next_hop=next_hop, dist=dist,
-                col_kind=col_kind,
-                row_direct=row_direct,
-                region_default=region_default,
-                exc_nodes=exc_nodes,
-                exc_hops=exc_hops,
-                edge_handle=edge_handle,
-                validators=validators,
-                scan_order=scan_order,
-                tree_edges_by_dst=tree_edges_by_dst, edge2dst=edge2dst
-            )
+        return Navigator.FullMetadata(
+            name2id=name2id, id2name=id2name, topo_hash=topo_hash,
+            node_volume=node_volume, edges=edges, forward_map=forward_map, reverse_map=reverse_map,
+            block_of=block_of, blocks=blocks, block_volume=blocks_volume,
+            next_hop=next_hop, distances=distances,
+            block_compacted=block_compacted,
+            block_uncompacted_hops=block_uncompacted_hops,
+            block_compacted_hops=block_compacted_hops,
+            block_except_nodes=block_except_nodes,
+            block_except_hops=block_except_hops,
+            bfs_preferred_edges=bfs_preferred_edges, edge2destination=edge2destination
+        )
 
-    # 全量构建
-    print("[build] full build") if log_output else None
+    @staticmethod
+    def load_metadata(path: str) -> Navigator.BaseMetadata:
+        with open(path, 'rb') as f:
+            payload = pickle.loads(gzip.decompress(f.read()))
+        kind = payload.get('kind', 'base')
+        if kind == 'full':
+            return Navigator.FullMetadata.from_payload(payload)
+        elif kind == 'base':
+            return Navigator.BaseMetadata.from_payload(payload)
+        else:
+            raise ValueError(f"unknown metadata kind: {kind}")
 
-    # 1) 先跑反向 BFS
-    next_hop, dist, tree_edges_by_dst = reverse_bfs(node_volume, reverse_map)
+    metadata: BaseMetadata
+    _edge2action: dict[tuple[int, int], Callable[[], None]]
+    _validators: list[None | Callable[[], bool]]
 
-    # 2) 用采样评估选择块大小并切块
-    block_of, blocks, blocks_volume, chosen_blk = split_blocks(node_volume, forward, reverse_map)
-    print(f"[build] chosen block_size={chosen_blk}, blocks={blocks_volume}") if log_output else None
+    # maintain a scan order to optimize resolve_current_interface (move-to-front)
+    _scan_order: list[int]
 
-    # 3) 逐列自适应压缩（直接 vs 区域，择优）
-    col_kind, row_direct, region_default, exc_nodes, exc_hops = build_compact_columns(
-        node_volume, block_of, blocks_volume, next_hop
-    )
+    def static_next_hop(self, current_id: int, destination_id: int) -> int:
+        compacted = self.metadata.block_compacted[destination_id]
+        if not compacted:
+            # directly returns from block_uncompacted_hops
+            row = self.metadata.block_uncompacted_hops[destination_id]
+            # row is array('h'): current_id -> next_hop_id
+            return row[current_id] if row is not None else -1
+        else:
+            # use block_compacted_hops + block_except_* to lookup
+            # first check exceptions
+            exc_nodes = self.metadata.block_except_nodes[destination_id]
+            if exc_nodes is not None and len(exc_nodes) > 0:
+                pos = bisect.bisect_left(exc_nodes, current_id)
+                if pos < len(exc_nodes) and exc_nodes[pos] == current_id:
+                    return self.metadata.block_except_hops[destination_id][pos]
+            block_id = self.metadata.block_of[current_id]
+            defaults = self.metadata.block_compacted_hops[destination_id]
+            return defaults[block_id] if defaults is not None else -1
 
-    # 4) 建 edge2dst（与原逻辑一致）
-    edge2dst: dict[tuple[int, int], set[int]] = defaultdict(set)
-    for m, tree_edges in tree_edges_by_dst.items():
-        for tree_edge in tree_edges:
-            edge2dst[tree_edge].add(m)
+    def fallback_next_hops(self, current_id: int, destination_id: int,
+                           skip_edges: Optional[set[tuple[int, int]]] = None) -> None | list[int]:
+        if current_id == destination_id:
+            return []
+        path = []
+        interface_volume = self.metadata.node_volume
+        dq = deque([current_id])
+        parent = [-1] * interface_volume
+        seen = [False] * interface_volume
+        seen[current_id] = True
+        while dq:
+            u = dq.popleft()
+            for next_node_id in self.metadata.forward_map[u]:
+                if skip_edges is not None and (u, next_node_id) in skip_edges:
+                    continue
+                if not seen[next_node_id]:
+                    seen[next_node_id] = True
+                    parent[next_node_id] = u
+                    if next_node_id == destination_id:
+                        # arrived the destination, reconstruct the path
+                        cur = next_node_id
+                        while parent[cur] != current_id:
+                            path.append(cur)
+                            cur = parent[cur]
+                        path.append(cur)
+                        path.reverse()
+                        return path
+                    dq.append(next_node_id)
+        return None
 
-    scan_order = list(itertools.chain.from_iterable(blocks)) if blocks else list(range(node_volume))
-    validators: list[None | Callable[[], bool]] = [None] * node_volume
-    for node in specs:
-        validators[name2id[node.name]] = node.check
+    def rebuild(self, interfaces: list[Interface]) -> None:
+        if isinstance(self.metadata, Navigator.FullMetadata):
+            self.metadata = Navigator.compile_metadata(interfaces, cached_metadata=self.metadata)
+        else:
+            self.metadata = Navigator.compile_metadata(interfaces)
+        self.update_actions_features(interfaces)
+        self._scan_order = list(range(self.metadata.node_volume))
 
-    return Index(
-        name2id=name2id, id2name=id2name, topo_hash=topo_hash,
-        node_volume=node_volume, edges=edges, forward_map=forward, reverse_map=reverse_map,
-        block_of=block_of, blocks=blocks, block_volume=blocks_volume,
-        next_hop=next_hop, dist=dist,
-        col_kind=col_kind,
-        row_direct=row_direct,
-        region_default=region_default,
-        exc_nodes=exc_nodes,
-        exc_hops=exc_hops,
-        edge_handle=edge_handle,
-        validators=validators,
-        scan_order=scan_order,
-        tree_edges_by_dst=tree_edges_by_dst, edge2dst=edge2dst
-    )
+    def update_actions_features(self, interfaces: list[Interface]) -> None:
+        self._edge2action = {}
+        self._validators = [None] * self.metadata.node_volume
+
+        for interface in interfaces:
+            interface_id = self.metadata.name2id[interface.name]
+            self._validators[interface_id] = interface.validate
+            for destination_name, act in interface.actions.items():
+                destination_id = self.metadata.name2id[destination_name]
+                if act is not None:
+                    self._edge2action[(interface_id, destination_id)] = act
+
+    def update_single_action(self, interface: int | str, destination: int | str,
+                             new_action: Optional[Callable[[], None]]) -> None:
+        interface_id = self.convert_to_id(interface)
+        destination_id = self.convert_to_id(destination)
+        if new_action is not None:
+            self._edge2action[(interface_id, destination_id)] = new_action
+        else:
+            self._edge2action.pop((interface_id, destination_id), None)
+
+    def update_single_features(self, interface: int | str, new_features: list[Callable[[], bool]]) -> None:
+        interface_id = self.convert_to_id(interface)
+        combined_validator = lambda: all(feature() for feature in new_features)
+        self._validators[interface_id] = combined_validator
+
+    def resolve_current_interface_id(self, priority: Optional[list[int]] = None) -> Optional[int]:
+        # 1) preferred candidates (e.g., source/destination), check in order
+        seen: set[int] = set()
+        if priority:
+            for interface_id in priority:
+                if 0 <= interface_id < self.metadata.node_volume and interface_id not in seen:
+                    seen.add(interface_id)
+                    if self._validators[interface_id]():
+                        return interface_id
+
+        # 2) full scan optimized by _scan_order, move-to-front on hit
+        for index, interface_id in enumerate(self._scan_order):
+            if interface_id in seen:
+                continue
+            if self._validators[interface_id]():
+                # move-to-front
+                if index > 0:
+                    self._scan_order.pop(index)
+                    self._scan_order.insert(0, interface_id)
+                return interface_id
+        return None
+
+    def resolve_current_interface(self, priority: Optional[list[int]] = None) -> Optional[int]:
+        interface_id = self.resolve_current_interface_id(priority)
+        return self.metadata.id2name[interface_id] if interface_id is not None else None
+
+    def convert_to_id(self, interface: int | str) -> int:
+        """
+        Args:
+            interface: interface id or name
+
+        Returns:
+            int: interface id
+
+        Raises:
+            ValueError: if interface name is not defined in metadata
+        """
+
+        if isinstance(interface, str):
+            node_id = self.metadata.name2id.get(interface)
+            if node_id is None:
+                raise ValueError(f"Unknown interface name: {interface}")
+            return node_id
+        else:
+            return interface
+
+    def convert_to_name(self, interface: int | str) -> str:
+        """
+        Args:
+            interface: interface id or name
+
+        Returns:
+            str: interface name
+
+        Raises:
+            ValueError: if interface id is invalid
+        """
+
+        if isinstance(interface, int):
+            if 0 <= interface < self.metadata.node_volume:
+                return self.metadata.id2name[interface]
+            else:
+                raise ValueError(f"Interface id invalid: {interface}")
+        else:
+            return interface
+
+    def goto(self, current: int | str, destination: int | str,
+             path: Optional[list] = None, deprecated_path: Optional[set[tuple[int, int]]] = None,
+             log_output: bool = True) -> bool:
+        def debug_print(*args, **kwargs):
+            if log_output:
+                print(*args, **kwargs)
+
+        # noinspection PyShadowingNames
+        def build_static_path(current_id: int, destination_id: int) -> list:
+            static_path = []
+            tmp_id = current_id
+            while tmp_id != destination_id:
+                next_node_id = self.static_next_hop(tmp_id, destination_id)
+                if next_node_id == -1:
+                    raise RuntimeError(
+                        f"No path exists from {self.metadata.id2name[tmp_id]} to {self.metadata.id2name[destination_id]}")
+                static_path.append(next_node_id)
+                tmp_id = next_node_id
+            return static_path
+
+        # convert current/destination to ids
+        current_id = self.convert_to_id(current)
+        destination_id = self.convert_to_id(destination)
+
+        if not path:
+            if deprecated_path:
+                # if any path is deprecated, we use runtime bfs to lookup instead of static path
+                fallback_path = self.fallback_next_hops(current_id, destination_id, deprecated_path)
+                if fallback_path is None:
+                    raise RuntimeError("No available path found (after deprecating edges).")
+                return self.goto(current_id, destination_id,
+                                 path=fallback_path,
+                                 deprecated_path=deprecated_path,
+                                 log_output=log_output)
+            return self.goto(current_id, destination_id, path=build_static_path(current_id, destination_id), log_output=log_output)
+
+        debug_print(
+            f"Running path: {[self.metadata.id2name[nid] for nid in path]}, from {self.metadata.id2name[current_id]} to {self.metadata.id2name[destination_id]}")
+        debug_print(
+            f"Deprecated edges: {[(self.metadata.id2name[u], self.metadata.id2name[v]) for u, v in deprecated_path]}") if deprecated_path else None
+        for next_node_id in path:
+            action = self._edge2action.get((current_id, next_node_id))
+            if action is None:
+                debug_print(
+                    f"[goto][warning] no action defined from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}")
+                return False
+            try:
+                action()
+            except Exception as e:
+                debug_print(
+                    f"error executing action from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}: {e}")
+                if deprecated_path is None:
+                    deprecated_path = set()
+                deprecated_path.add((current_id, next_node_id))
+                return self.goto(current_id, destination_id, deprecated_path=deprecated_path, log_output=log_output)
+
+            resolved_id: int = self.resolve_current_interface_id([next_node_id, current_id])
+            if resolved_id is None:
+                raise RuntimeError("cannot resolve current node during path execution")
+            elif resolved_id == current_id:
+                debug_print(
+                    f"warning: path blocked from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}, recalculating...")
+                if deprecated_path is None:
+                    deprecated_path = set()
+                deprecated_path.add((current_id, next_node_id))
+                return self.goto(current_id, destination_id, deprecated_path=deprecated_path, log_output=log_output)
+            elif resolved_id != next_node_id:
+                debug_print(f"warning: deviated from planned path,current:{resolved_id}, recalculating...")
+                return self.goto(current_id, destination_id, deprecated_path=deprecated_path, log_output=log_output)
+            current_id = resolved_id
+        return True
+
+    def __init__(self, interfaces: list[Interface], metadata: Optional[BaseMetadata] = None):
+        self.metadata = metadata if metadata else Navigator.compile_metadata(interfaces, cached_metadata=None)
+        self.update_actions_features(interfaces)
+        self._scan_order = list(range(self.metadata.node_volume))

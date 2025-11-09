@@ -7,7 +7,7 @@ from functools import partial
 from typing import Callable, Optional
 import random
 
-from core.navigator import NodeSpec
+from core.navigator import Navigator
 
 # Global mutable to emulate environment for feature validators
 CURRENT_NODE: str = ""
@@ -48,7 +48,7 @@ def generate_specs(
     failing_raise_ratio: float | None = None,
     failing_stay_ratio: float | None = None,
     avg_out_degree: float | None = None,
-) -> list[NodeSpec]:
+) -> list[Navigator.Interface]:
     """Generate a list of NodeSpec objects.
 
     Parameters
@@ -79,7 +79,7 @@ def generate_specs(
     assert failing_raise_ratio + failing_stay_ratio <= 1.0
 
     names = [f"N{i}" for i in range(num_nodes)]
-    specs: list[NodeSpec] = []
+    specs: list[Navigator.Interface] = []
 
     # Build backbone chain for connectivity
     edges: set[tuple[int, int]] = set()
@@ -127,7 +127,7 @@ def generate_specs(
                     actions[dest_name] = _make_fail_stay()
                 else:
                     actions[dest_name] = _make_action(dest_name)
-        spec = NodeSpec(
+        spec = Navigator.Interface(
             name=name,
             description=f"Auto generated node {name}",
             features=[partial(_feature_validator, name)],
@@ -171,9 +171,9 @@ def generate_small_fallback_raise(seed: int | None = None):
         actions["A"]["E"] = _make_action("E")
         actions["E"]["B"] = _make_action("B")
         actions["E"]["C"] = _make_action("C")
-    specs: list[NodeSpec] = []
+    specs: list[Navigator.Interface] = []
     for n in names:
-        specs.append(NodeSpec(
+        specs.append(Navigator.Interface(
             name=n,
             description=n,
             features=[partial(_feature_validator, n)],
@@ -206,9 +206,9 @@ def generate_small_fallback_stay(seed: int | None = None):
         actions["E"] = {}
         actions["A"]["E"] = _make_action("E")
         actions["E"]["C"] = _make_action("C")
-    specs: list[NodeSpec] = []
+    specs: list[Navigator.Interface] = []
     for n in names:
-        specs.append(NodeSpec(
+        specs.append(Navigator.Interface(
             name=n,
             description=n,
             features=[partial(_feature_validator, n)],
