@@ -1,7 +1,7 @@
 import json
 import time
 
-from core import image, picture, Baas_thread, color
+from core import image, picture, color
 from core.image import swipe_search_target_str
 from module import main_story
 
@@ -90,7 +90,7 @@ def to_hard_event(self, skip_first_screenshot=False):
     picture.co_detect(self, rgb_ends, rgb_reactions, None, img_reactions, skip_first_screenshot)
 
 
-def to_normal_event(self: Baas_thread, skip_first_screenshot=False):
+def to_normal_event(self: core.Baas_thread, skip_first_screenshot=False):
     rgb_ends = ['event_normal']
     rgb_reactions = {
         "event_hard": (805, 165),
@@ -155,7 +155,7 @@ def get_challenge_state(self, challenge_count=1) -> list[int]:
     return result
 
 
-def convert_team_config(self: Baas_thread) -> dict:
+def convert_team_config(self: core.Baas_thread) -> dict:
     employ_method = self.config.choose_team_method
     teamConfig = {"burst": [], "pierce": [], "mystic": [], "shock": []}
     teamData = self.config.side_team_attribute if employ_method == "side" else self.config.preset_team_attribute

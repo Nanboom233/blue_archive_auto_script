@@ -1,7 +1,4 @@
-import time
-
 from core import picture
-from core.picture import GAME_ONE_TIME_POP_UPS
 
 
 def implement(self):
@@ -42,7 +39,7 @@ def return_to_main_page(self):
     picture.co_detect(self, rgb_ends, rgb_possibles, None, img_possibles, skip_first_screenshot=True)
 
 def to_purchase_pyroxenes_menu(self):
-    img_possibles = GAME_ONE_TIME_POP_UPS[self.server]
+    img_possibles = picture.GAME_ONE_TIME_POP_UPS[self.server]
     rgb_possibles = {
         "main_page": (982, 28)
     }
