@@ -725,7 +725,7 @@ class Navigator:
         else:
             return interface
 
-    def goto(self, current: int | str, destination: int | str,
+    def goto(self, destination: int | str, current: Optional[int | str] = None,
              path: Optional[list] = None, deprecated_path: Optional[set[tuple[int, int]]] = None,
              log_output: bool = True) -> bool:
         def debug_print(*args, **kwargs):
@@ -745,6 +745,13 @@ class Navigator:
                 tmp_id = next_node_id
             return static_path
 
+        # if not defined current interface, resolve it
+        if current is None:
+            resolved_id = self.resolve_current_interface_id()
+            if resolved_id is None:
+                raise RuntimeError("cannot resolve current interface")
+            current = resolved_id
+
         # convert current/destination to ids
         current_id = self.convert_to_id(current)
         destination_id = self.convert_to_id(destination)
@@ -755,11 +762,13 @@ class Navigator:
                 fallback_path = self.fallback_next_hops(current_id, destination_id, deprecated_path)
                 if fallback_path is None:
                     raise RuntimeError("No available path found (after deprecating edges).")
-                return self.goto(current_id, destination_id,
+                return self.goto(current=current_id, destination=destination_id,
                                  path=fallback_path,
                                  deprecated_path=deprecated_path,
                                  log_output=log_output)
-            return self.goto(current_id, destination_id, path=build_static_path(current_id, destination_id), log_output=log_output)
+            return self.goto(current=current_id, destination=destination_id,
+                             path=build_static_path(current_id, destination_id),
+                             log_output=log_output)
 
         debug_print(
             f"Running path: {[self.metadata.id2name[nid] for nid in path]}, from {self.metadata.id2name[current_id]} to {self.metadata.id2name[destination_id]}")
@@ -779,7 +788,8 @@ class Navigator:
                 if deprecated_path is None:
                     deprecated_path = set()
                 deprecated_path.add((current_id, next_node_id))
-                return self.goto(current_id, destination_id, deprecated_path=deprecated_path, log_output=log_output)
+                return self.goto(current=current_id, destination=destination_id, deprecated_path=deprecated_path,
+                                 log_output=log_output)
 
             resolved_id: int = self.resolve_current_interface_id([next_node_id, current_id])
             if resolved_id is None:
@@ -790,10 +800,12 @@ class Navigator:
                 if deprecated_path is None:
                     deprecated_path = set()
                 deprecated_path.add((current_id, next_node_id))
-                return self.goto(current_id, destination_id, deprecated_path=deprecated_path, log_output=log_output)
+                return self.goto(current=current_id, destination=destination_id, deprecated_path=deprecated_path,
+                                 log_output=log_output)
             elif resolved_id != next_node_id:
                 debug_print(f"warning: deviated from planned path,current:{resolved_id}, recalculating...")
-                return self.goto(current_id, destination_id, deprecated_path=deprecated_path, log_output=log_output)
+                return self.goto(current=current_id, destination=destination_id, deprecated_path=deprecated_path,
+                                 log_output=log_output)
             current_id = resolved_id
         return True
 

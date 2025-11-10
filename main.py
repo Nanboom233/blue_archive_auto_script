@@ -1,13 +1,12 @@
 import json
 import os
-import time
 
+import core.navigator.interfaces
+from core.Baas_thread import Baas_thread
+from core.config.config_set import ConfigSet
+from core.ocr import ocr
 from core.ocr.baas_ocr_client.server_installer import check_git
 from core.utils import Logger
-from core.ocr import ocr
-from core.config.config_set import ConfigSet
-from core.Baas_thread import Baas_thread
-from core import picture, color
 
 
 class Main:
@@ -165,4 +164,11 @@ if __name__ == '__main__':
     # bThread.solve("friend")
     # bThread.solve("joint_firing_drill")
     # bThread.solve("storage_check")
+    interfaces_instance = core.navigator.interfaces.Interfaces(bThread)
+    interfaces = interfaces_instance.list_interfaces()
+    print(interfaces)
+    navigator_instance = core.navigator.navigator.Navigator(interfaces)
+    bThread.update_screenshot_array()
+    print(navigator_instance.resolve_current_interface())
+    navigator_instance.goto(interfaces_instance.I_group_page.name)
     pass

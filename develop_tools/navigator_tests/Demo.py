@@ -1,6 +1,6 @@
 from functools import partial
 
-from .navigator import Navigator
+from core.navigator.navigator import Navigator
 
 CURRENT_NODE: str = ""
 
@@ -96,7 +96,7 @@ def main():
     del navigator
 
     # use runtime base metadata
-    navigator = Navigator(interfaces, Navigator.load_metadata("navigator-full.metadata"))
+    navigator = Navigator(interfaces, Navigator.load_metadata("../../core/navigator/navigator-full.metadata"))
 
     # 运行期环境
     global CURRENT_NODE
