@@ -1,6 +1,6 @@
 import time
 
-from core.picture import co_detect, GAME_ONE_TIME_POP_UPS
+from core import picture
 
 
 def implement(self):
@@ -32,7 +32,7 @@ def collect_reward(self):
         "reward_acquired": (640, 100),
     }
     img_ends = "pass_collect-reward-unavailable"
-    co_detect(self, None, rgb_possibles, img_ends, img_possibles, True)
+    picture.co_detect(self, None, rgb_possibles, img_ends, img_possibles, True)
 
 
 def main_page_to_pass_menu(self):
@@ -40,7 +40,7 @@ def main_page_to_pass_menu(self):
         "main_page": (394, 556)
     }
     img_ends =  "pass_menu"
-    co_detect(self, None, rgb_possibles, img_ends, GAME_ONE_TIME_POP_UPS[self.server], True)
+    picture.co_detect(self, None, rgb_possibles, img_ends, picture.GAME_ONE_TIME_POP_UPS[self.server], True)
 
 
 def to_page_pass_menu(self):
@@ -51,7 +51,7 @@ def to_page_pass_menu(self):
     rgb_possibles = {
         "reward_acquired": (640, 100),
     }
-    co_detect(self, None, rgb_possibles, img_ends, img_possibles, True)
+    picture.co_detect(self, None, rgb_possibles, img_ends, img_possibles, True)
 
 
 def to_page_pass_mission(self):
@@ -59,7 +59,7 @@ def to_page_pass_mission(self):
         "pass_menu": (382, 649)
     }
     img_ends = "pass_mission-menu"
-    co_detect(self, None, None, img_ends, img_possibles, True)
+    picture.co_detect(self, None, None, img_ends, img_possibles, True)
 
 
 def detect_statistics(self):

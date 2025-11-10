@@ -1,12 +1,12 @@
 from copy import deepcopy
 
-from core import picture, Baas_thread, image
+from core import picture, image
 from core.color import check_sweep_availability
 from core.config.config_set import ConfigSet
 from module.ExploreTasks.TaskUtils import to_hard_event, to_mission_info, to_region, to_normal_event
 
 
-def print_task_list(self: Baas_thread, tasklist: list[list], title: str, isNormal: bool) -> None:
+def print_task_list(self: core.Baas_thread, tasklist: list[list], title: str, isNormal: bool) -> None:
     current_ap = self.get_ap(True)
     self.logger.info(title + " {")
     ap_required = 0
@@ -23,7 +23,7 @@ def print_task_list(self: Baas_thread, tasklist: list[list], title: str, isNorma
     self.logger.info("},requiring " + str(ap_required) + " AP.")
 
 
-def sweep_hard_task(self: Baas_thread):
+def sweep_hard_task(self: core.Baas_thread):
     self.to_main_page(skip_first_screenshot=True)
     current_ap = self.get_ap(True)
     tasklist = deepcopy(self.config.unfinished_hard_tasks)
@@ -145,7 +145,7 @@ def sweep_normal_task(self):
     return True
 
 
-def start_sweep(self: Baas_thread, skip_first_screenshot: bool = False) -> str:
+def start_sweep(self: core.Baas_thread, skip_first_screenshot: bool = False) -> str:
     img_ends = [
         "purchase_ap_notice",
         "purchase_ap_notice-localized",
