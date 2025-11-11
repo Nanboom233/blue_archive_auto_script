@@ -1,6 +1,6 @@
 from functools import partial
 
-from .navigator import Navigator
+from core.navigator.navigator import Navigator
 
 CURRENT_NODE: str = ""
 
@@ -86,58 +86,59 @@ def build_demo_specs():
 
 
 def main():
-    interfaces = build_demo_specs()
-    navigator = Navigator(interfaces)
-
-    # test saving and reading
-    assert isinstance(navigator.metadata, Navigator.FullMetadata)
-    navigator.metadata.save("navigator-full.metadata")  # full metadata
-    navigator.metadata.to_base().save("navigator-runtime.metadata")  # runtime base metadata
-    del navigator
-
-    # use runtime base metadata
-    navigator = Navigator(interfaces, Navigator.load_metadata("navigator-full.metadata"))
-
-    # 运行期环境
-    global CURRENT_NODE
-    CURRENT_NODE = "A1"
-
-    # 2) 从 A1 前往 B2，逐步 goto
-    print("\n== goto A1 -> B2 ==")
-    if not navigator.goto("A1", "B2"):
-        raise RuntimeError("Failed to reach B2 from A1")
-
-    # 3) 仅修改 runnable（拓扑不变），不触发重建
-    print("\n== change runnable only, topology unchanged ==")
-    # 将 C1->B2 的动作替换成failed
-    navigator.update_single_action(
-        "C1",
-        "B2",
-        example_failed_action
-    )
-
-    CURRENT_NODE = "A1"
-    print("\n== goto A1 -> B2 with failed runnable (fallback BFS) ==")
-    if not navigator.goto("A1", "B2"):
-        raise RuntimeError("Failed to reach B2 from A1")
-
-    # 5) 增量：新增边 A1->Gate，仅重建受影响的目的地列
-    print("\n== incremental: add edge A1->Gate ==")
-    for interface in interfaces:
-        if interface.name == "A1":
-            # 新增一条到 Gate 的动作（新的 runnable）
-            interface.actions["Gate"] = partial(example_action_goto, "Gate")
-    # if the metadata is runtime base, it will fully rebuild
-    # otherwise, it will do incremental rebuild
-    navigator.rebuild(interfaces)
-
-    # 观察路径是否更短（A1->Gate->B2）
-    CURRENT_NODE = "A1"
-    print("\n== goto A1 -> B2 after edge added ==")
-    if not navigator.goto("A1", "B2"):
-        raise RuntimeError("Failed to reach B2 from A1")
-
-    print("\nDone.")
+    # interfaces = build_demo_specs()
+    # navigator = Navigator(interfaces)
+    #
+    # # test saving and reading
+    # assert isinstance(navigator.metadata, Navigator.FullMetadata)
+    # navigator.metadata.save("navigator-full.metadata")  # full metadata
+    # navigator.metadata.to_base().save("navigator-runtime.metadata")  # runtime base metadata
+    # del navigator
+    #
+    # # use runtime base metadata
+    # navigator = Navigator(interfaces, Navigator.load_metadata("../../core/navigator/navigator-full.metadata"))
+    #
+    # # 运行期环境
+    # global CURRENT_NODE
+    # CURRENT_NODE = "A1"
+    #
+    # # 2) 从 A1 前往 B2，逐步 goto
+    # print("\n== goto A1 -> B2 ==")
+    # if not navigator.goto("A1", "B2"):
+    #     raise RuntimeError("Failed to reach B2 from A1")
+    #
+    # # 3) 仅修改 runnable（拓扑不变），不触发重建
+    # print("\n== change runnable only, topology unchanged ==")
+    # # 将 C1->B2 的动作替换成failed
+    # navigator.update_single_action(
+    #     "C1",
+    #     "B2",
+    #     example_failed_action
+    # )
+    #
+    # CURRENT_NODE = "A1"
+    # print("\n== goto A1 -> B2 with failed runnable (fallback BFS) ==")
+    # if not navigator.goto("A1", "B2"):
+    #     raise RuntimeError("Failed to reach B2 from A1")
+    #
+    # # 5) 增量：新增边 A1->Gate，仅重建受影响的目的地列
+    # print("\n== incremental: add edge A1->Gate ==")
+    # for interface in interfaces:
+    #     if interface.name == "A1":
+    #         # 新增一条到 Gate 的动作（新的 runnable）
+    #         interface.actions["Gate"] = partial(example_action_goto, "Gate")
+    # # if the metadata is runtime base, it will fully rebuild
+    # # otherwise, it will do incremental rebuild
+    # navigator.rebuild(interfaces)
+    #
+    # # 观察路径是否更短（A1->Gate->B2）
+    # CURRENT_NODE = "A1"
+    # print("\n== goto A1 -> B2 after edge added ==")
+    # if not navigator.goto("A1", "B2"):
+    #     raise RuntimeError("Failed to reach B2 from A1")
+    #
+    # print("\nDone.")
+    pass
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ import bisect
 import gzip
 import hashlib
 import pickle
+import time
 from array import array
 from collections import deque, defaultdict, Counter
 from copy import deepcopy
@@ -16,12 +17,12 @@ class Navigator:
     class Interface:
         name: str
         description: str
-        features: list[Callable[[], bool]]
+        features: list[Callable[[core.Baas_thread], bool]]
         actions: dict[str, Optional[Callable]]
 
-        def validate(self) -> bool:
+        def validate(self, baas_thread: core.Baas_thread) -> bool:
             for feature in self.features:
-                if not feature():
+                if not feature(baas_thread):
                     return False
             return True
 
@@ -447,6 +448,9 @@ class Navigator:
         node_volume, edges, forward_map, reverse_map = build_graph(interfaces, name2id)
         topo_hash = compute_topo_hash(node_volume, edges)
 
+        if node_volume == 0:
+            raise ValueError("Cannot build Navigator metadata with zero interfaces.")
+
         # if the topology is unchanged, we could use cached metadata safely
         if cached_metadata is not None and topo_hash == cached_metadata.topo_hash:
             debug_print("[build] topology unchanged, use cached metadata")
@@ -569,9 +573,10 @@ class Navigator:
         else:
             raise ValueError(f"unknown metadata kind: {kind}")
 
+    baas_thread: core.Baas_thread
     metadata: BaseMetadata
-    _edge2action: dict[tuple[int, int], Callable[[], None]]
-    _validators: list[None | Callable[[], bool]]
+    _edge2action: dict[tuple[int, int], Callable[[core.Baas_thread], None]]
+    _validators: list[None | Callable[[core.Baas_thread], bool]]
 
     # maintain a scan order to optimize resolve_current_interface (move-to-front)
     _scan_order: list[int]
@@ -646,7 +651,7 @@ class Navigator:
                     self._edge2action[(interface_id, destination_id)] = act
 
     def update_single_action(self, interface: int | str, destination: int | str,
-                             new_action: Optional[Callable[[], None]]) -> None:
+                             new_action: Optional[Callable[[core.Baas_thread], None]]) -> None:
         interface_id = self.convert_to_id(interface)
         destination_id = self.convert_to_id(destination)
         if new_action is not None:
@@ -654,31 +659,39 @@ class Navigator:
         else:
             self._edge2action.pop((interface_id, destination_id), None)
 
-    def update_single_features(self, interface: int | str, new_features: list[Callable[[], bool]]) -> None:
+    def update_single_features(self, interface: int | str,
+                               new_features: list[Callable[[core.Baas_thread], bool]]) -> None:
         interface_id = self.convert_to_id(interface)
-        combined_validator = lambda: all(feature() for feature in new_features)
+        combined_validator = lambda baas_thread: all(feature(baas_thread) for feature in new_features)
         self._validators[interface_id] = combined_validator
 
-    def resolve_current_interface_id(self, priority: Optional[list[int]] = None) -> Optional[int]:
-        # 1) preferred candidates (e.g., source/destination), check in order
-        seen: set[int] = set()
-        if priority:
-            for interface_id in priority:
-                if 0 <= interface_id < self.metadata.node_volume and interface_id not in seen:
-                    seen.add(interface_id)
-                    if self._validators[interface_id]():
-                        return interface_id
+    def resolve_current_interface_id(self, priority: Optional[list[int]] = None,
+                                     max_retries: int = 20) -> Optional[int]:
+        for _ in range(max_retries):
+            self.baas_thread.update_screenshot_array()
+            # 1) preferred candidates (e.g., source/destination), check in order
+            seen: set[int] = set()
+            if priority:
+                for interface_id in priority:
+                    if 0 <= interface_id < self.metadata.node_volume and interface_id not in seen:
+                        seen.add(interface_id)
+                        if self._validators[interface_id](self.baas_thread):
+                            return interface_id
 
-        # 2) full scan optimized by _scan_order, move-to-front on hit
-        for index, interface_id in enumerate(self._scan_order):
-            if interface_id in seen:
-                continue
-            if self._validators[interface_id]():
-                # move-to-front
-                if index > 0:
-                    self._scan_order.pop(index)
-                    self._scan_order.insert(0, interface_id)
-                return interface_id
+            # 2) full scan optimized by _scan_order, move-to-front on hit
+            for index, interface_id in enumerate(self._scan_order):
+                if interface_id in seen:
+                    continue
+                if self._validators[interface_id](self.baas_thread):
+                    # move-to-front
+                    if index > 0:
+                        self._scan_order.pop(index)
+                        self._scan_order.insert(0, interface_id)
+                    return interface_id
+
+            # if not resolved, wait 300ms and retry
+            time.sleep(0.3)
+            print("[resolve_current_interface_id] retrying...")
         return None
 
     def resolve_current_interface(self, priority: Optional[list[int]] = None) -> Optional[str]:
@@ -725,9 +738,10 @@ class Navigator:
         else:
             return interface
 
-    def goto(self, current: int | str, destination: int | str,
+    def goto(self, destination: int | str, current: Optional[int | str] = None,
              path: Optional[list] = None, deprecated_path: Optional[set[tuple[int, int]]] = None,
-             log_output: bool = True) -> bool:
+             log_output: bool = True, max_retries: int = 10,
+             tentative_click: bool = True) -> bool:
         def debug_print(*args, **kwargs):
             if log_output:
                 print(*args, **kwargs)
@@ -745,9 +759,38 @@ class Navigator:
                 tmp_id = next_node_id
             return static_path
 
+        # noinspection PyShadowingNames
+        def deprecate_edge_and_retry(current_id: int, next_node_id: int,
+                                     deprecated_path: Optional[set[tuple[int, int]]],
+                                     log_output: bool) -> bool:
+            if deprecated_path is None:
+                deprecated_path = set()
+            deprecated_path.add((current_id, next_node_id))
+            return self.goto(current=current_id, destination=destination_id, deprecated_path=deprecated_path,
+                             log_output=log_output)
+
+        # noinspection PyShadowingNames
+        def tentative_resolve_id(priority: Optional[list[int]] = None) -> int:
+            resolved_id: int = self.resolve_current_interface_id()
+            while resolved_id is None:
+                if tentative_click:
+                    self.baas_thread.click(1238, 45)
+                    time.sleep(2)
+                    resolved_id = self.resolve_current_interface_id(priority)
+                else:
+                    raise RuntimeError("cannot resolve current node during path execution")
+            return resolved_id
+
+        # if not defined current interface, resolve it
+        if current is None:
+            current = tentative_resolve_id()
+
         # convert current/destination to ids
         current_id = self.convert_to_id(current)
         destination_id = self.convert_to_id(destination)
+
+        if current_id == destination_id:
+            return True
 
         if not path:
             if deprecated_path:
@@ -755,11 +798,13 @@ class Navigator:
                 fallback_path = self.fallback_next_hops(current_id, destination_id, deprecated_path)
                 if fallback_path is None:
                     raise RuntimeError("No available path found (after deprecating edges).")
-                return self.goto(current_id, destination_id,
+                return self.goto(current=current_id, destination=destination_id,
                                  path=fallback_path,
                                  deprecated_path=deprecated_path,
                                  log_output=log_output)
-            return self.goto(current_id, destination_id, path=build_static_path(current_id, destination_id), log_output=log_output)
+            return self.goto(current=current_id, destination=destination_id,
+                             path=build_static_path(current_id, destination_id),
+                             log_output=log_output)
 
         debug_print(
             f"Running path: {[self.metadata.id2name[nid] for nid in path]}, from {self.metadata.id2name[current_id]} to {self.metadata.id2name[destination_id]}")
@@ -770,34 +815,35 @@ class Navigator:
             if action is None:
                 debug_print(
                     f"[goto][warning] no action defined from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}")
-                return False
-            try:
-                action()
-            except Exception as e:
-                debug_print(
-                    f"error executing action from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}: {e}")
-                if deprecated_path is None:
-                    deprecated_path = set()
-                deprecated_path.add((current_id, next_node_id))
-                return self.goto(current_id, destination_id, deprecated_path=deprecated_path, log_output=log_output)
+                return deprecate_edge_and_retry(current_id, next_node_id, deprecated_path, log_output)
 
-            resolved_id: int = self.resolve_current_interface_id([next_node_id, current_id])
-            if resolved_id is None:
-                raise RuntimeError("cannot resolve current node during path execution")
-            elif resolved_id == current_id:
+            for _ in range(max_retries):
+                try:
+                    action(self.baas_thread)
+                    time.sleep(2)
+                    resolved_id: int = self.resolve_current_interface_id([next_node_id, current_id])
+                    if resolved_id != current_id:
+                        break
+                except Exception as e:
+                    debug_print(
+                        f"error executing action from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}: {e}")
+                    return deprecate_edge_and_retry(current_id, next_node_id, deprecated_path, log_output)
+
+            resolved_id = tentative_resolve_id([next_node_id, current_id])
+            if resolved_id == current_id:
                 debug_print(
                     f"warning: path blocked from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}, recalculating...")
-                if deprecated_path is None:
-                    deprecated_path = set()
-                deprecated_path.add((current_id, next_node_id))
-                return self.goto(current_id, destination_id, deprecated_path=deprecated_path, log_output=log_output)
+                return deprecate_edge_and_retry(current_id, next_node_id, deprecated_path, log_output)
             elif resolved_id != next_node_id:
                 debug_print(f"warning: deviated from planned path,current:{resolved_id}, recalculating...")
-                return self.goto(current_id, destination_id, deprecated_path=deprecated_path, log_output=log_output)
+                return self.goto(current=current_id, destination=destination_id, deprecated_path=deprecated_path,
+                                 log_output=log_output)
             current_id = resolved_id
         return True
 
-    def __init__(self, interfaces: list[Interface], metadata: Optional[BaseMetadata] = None):
+    def __init__(self, baas_thread: core.Baas_thread, interfaces: list[Interface],
+                 metadata: Optional[BaseMetadata] = None):
+        self.baas_thread = baas_thread
         self.metadata = metadata if metadata else Navigator.compile_metadata(interfaces, cached_metadata=None)
         self.update_actions_features(interfaces)
         self._scan_order = list(range(self.metadata.node_volume))

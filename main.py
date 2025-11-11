@@ -1,13 +1,12 @@
 import json
 import os
-import time
 
+import core.navigator.interfaces
+from core.Baas_thread import Baas_thread
+from core.config.config_set import ConfigSet
+from core.ocr import ocr
 from core.ocr.baas_ocr_client.server_installer import check_git
 from core.utils import Logger
-from core.ocr import ocr
-from core.config.config_set import ConfigSet
-from core.Baas_thread import Baas_thread
-from core import picture, color
 
 
 class Main:
@@ -44,13 +43,13 @@ class Main:
             return False
 
     def get_thread(
-            self,
-            config,
-            name="1",
-            logger_signal=None,
-            button_signal=None,
-            update_signal=None,
-            exit_signal=None
+        self,
+        config,
+        name="1",
+        logger_signal=None,
+        button_signal=None,
+        update_signal=None,
+        exit_signal=None
     ):
         t = Baas_thread(config, logger_signal, button_signal, update_signal, exit_signal)
         t.set_ocr(self.ocr)
@@ -165,4 +164,10 @@ if __name__ == '__main__':
     # bThread.solve("friend")
     # bThread.solve("joint_firing_drill")
     # bThread.solve("storage_check")
+    interfaces = core.navigator.interfaces.Interfaces.list_interfaces()
+    print(interfaces)
+    navigator_instance = core.navigator.navigator.Navigator(bThread, interfaces)
+    print(navigator_instance.resolve_current_interface())
+    navigator_instance.goto(core.navigator.interfaces.Interfaces.I_group_page.name)
+    navigator_instance.goto("main_page")
     pass
