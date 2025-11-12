@@ -36,6 +36,8 @@ class Navigator:
 
         node_volume: int  # number of interfaces
         forward_map: list[list[int]]  # interface_id -> [next_interface_ids]
+        
+        wildcard_interfaces: set[int]  # interface_ids that have "*" wildcard actions
 
         block_of: list[int]  # interface_id -> block_id
 
@@ -81,6 +83,7 @@ class Navigator:
                 'id2name': self.id2name,
                 'node_volume': self.node_volume,
                 'forward_map': self.forward_map,
+                'wildcard_interfaces': list(self.wildcard_interfaces),  # Convert set to list for JSON serialization
                 'block_of': self.block_of,
                 'block_compacted': {
                     'typecode': self.block_compacted.typecode,
@@ -110,6 +113,7 @@ class Navigator:
                 id2name=payload['id2name'],
                 node_volume=payload['node_volume'],
                 forward_map=payload['forward_map'],
+                wildcard_interfaces=set(payload.get('wildcard_interfaces', [])),  # Convert list back to set
                 block_of=payload['block_of'],
                 block_compacted=block_compacted,
                 block_uncompacted_hops=cls._unpack_arr_list(payload['block_uncompacted_hops']),
@@ -142,6 +146,7 @@ class Navigator:
                 id2name=self.id2name,
                 node_volume=self.node_volume,
                 forward_map=self.forward_map,
+                wildcard_interfaces=self.wildcard_interfaces,
                 block_of=self.block_of,
                 block_compacted=self.block_compacted,
                 block_uncompacted_hops=self.block_uncompacted_hops,
@@ -185,6 +190,7 @@ class Navigator:
                 node_volume=payload['node_volume'],
                 edges=payload['edges'],
                 forward_map=payload['forward_map'],
+                wildcard_interfaces=set(payload.get('wildcard_interfaces', [])),
                 reverse_map=payload['reverse_map'],
                 block_of=payload['block_of'],
                 blocks=payload['blocks'],
@@ -223,16 +229,17 @@ class Navigator:
 
         # noinspection PyShadowingNames
         def build_graph(interfaces: list[Interface], name2id: dict[str, int]) -> tuple[
-            int, set[tuple[int, int]], list[list[int]], list[list[int]]]:
+            int, set[tuple[int, int]], list[list[int]], list[list[int]], set[int]]:
             """
             Args:
                 interfaces: list of Interface specs
                 name2id: interface_name -> interface_id
 
             Returns:
-                interface_volume, edges, forward_map, reverse_map
+                interface_volume, edges, forward_map, reverse_map, wildcard_interfaces
 
             Build the directed graph from interface specs.
+            Wildcard edges (destination "*") are excluded from the static graph.
             """
 
             interface_volume = len(name2id)
@@ -240,11 +247,17 @@ class Navigator:
             reverse_map = [[] for _ in range(interface_volume)]
 
             edges = set()
+            wildcard_interfaces = set()  # Track interfaces with wildcard actions
             # works as a set of existing edges and to avoid duplicate edges
 
             for spec in interfaces:
                 spec_id = name2id[spec.name]
                 for destination_name, act in spec.actions.items():
+                    # Skip wildcard actions - they don't create static edges
+                    if destination_name == "*":
+                        wildcard_interfaces.add(spec_id)
+                        continue
+                    
                     destination_id = name2id[destination_name]
                     if (spec_id, destination_id) not in edges:
                         edges.add((spec_id, destination_id))
@@ -255,7 +268,7 @@ class Navigator:
                 # sort to ensure stable map (for hash computation)
                 forward_map[spec_id].sort()
                 reverse_map[spec_id].sort()
-            return interface_volume, edges, forward_map, reverse_map
+            return interface_volume, edges, forward_map, reverse_map, wildcard_interfaces
 
         # noinspection PyShadowingNames
         def compute_topo_hash(interface_volume: int, edges: set[tuple[int, int]]) -> str:
@@ -445,7 +458,7 @@ class Navigator:
 
         name2id, id2name = build_idmap(interfaces, cached_metadata)
 
-        node_volume, edges, forward_map, reverse_map = build_graph(interfaces, name2id)
+        node_volume, edges, forward_map, reverse_map, wildcard_interfaces = build_graph(interfaces, name2id)
         topo_hash = compute_topo_hash(node_volume, edges)
 
         if node_volume == 0:
@@ -550,7 +563,9 @@ class Navigator:
 
         return Navigator.FullMetadata(
             name2id=name2id, id2name=id2name, topo_hash=topo_hash,
-            node_volume=node_volume, edges=edges, forward_map=forward_map, reverse_map=reverse_map,
+            node_volume=node_volume, edges=edges, forward_map=forward_map, 
+            wildcard_interfaces=wildcard_interfaces,
+            reverse_map=reverse_map,
             block_of=block_of, blocks=blocks, block_volume=blocks_volume,
             next_hop=next_hop, distances=distances,
             block_compacted=block_compacted,
@@ -575,7 +590,7 @@ class Navigator:
 
     baas_thread: core.Baas_thread
     metadata: BaseMetadata
-    _edge2action: dict[tuple[int, int], Callable[[core.Baas_thread], None]]
+    _edge2action: dict[tuple[int, int | str], Callable[[core.Baas_thread], None]]  # Allow int or "*" for wildcard
     _validators: list[None | Callable[[core.Baas_thread], bool]]
 
     # maintain a scan order to optimize resolve_current_interface (move-to-front)
@@ -646,9 +661,13 @@ class Navigator:
             interface_id = self.metadata.name2id[interface.name]
             self._validators[interface_id] = interface.validate
             for destination_name, act in interface.actions.items():
-                destination_id = self.metadata.name2id[destination_name]
                 if act is not None:
-                    self._edge2action[(interface_id, destination_id)] = act
+                    if destination_name == "*":
+                        # Store wildcard action with special key (interface_id, "*")
+                        self._edge2action[(interface_id, "*")] = act
+                    else:
+                        destination_id = self.metadata.name2id[destination_name]
+                        self._edge2action[(interface_id, destination_id)] = act
 
     def update_single_action(self, interface: int | str, destination: int | str,
                              new_action: Optional[Callable[[core.Baas_thread], None]]) -> None:
@@ -742,36 +761,33 @@ class Navigator:
              path: Optional[list] = None, deprecated_path: Optional[set[tuple[int, int]]] = None,
              log_output: bool = True, max_retries: int = 10,
              tentative_click: bool = True) -> bool:
+        """
+        Navigate from current interface to destination interface.
+        
+        Refactored to iterative implementation (non-recursive).
+        Supports wildcard interfaces that have "*" actions leading to unknown destinations.
+        """
         def debug_print(*args, **kwargs):
             if log_output:
                 print(*args, **kwargs)
 
         # noinspection PyShadowingNames
-        def build_static_path(current_id: int, destination_id: int) -> list:
+        def build_static_path(current_id: int, destination_id: int) -> Optional[list]:
+            """Build path using static next-hop lookups. Returns None if no path exists."""
             static_path = []
             tmp_id = current_id
             while tmp_id != destination_id:
                 next_node_id = self.static_next_hop(tmp_id, destination_id)
                 if next_node_id == -1:
-                    raise RuntimeError(
-                        f"No path exists from {self.metadata.id2name[tmp_id]} to {self.metadata.id2name[destination_id]}")
+                    return None  # No static path exists
                 static_path.append(next_node_id)
                 tmp_id = next_node_id
             return static_path
 
         # noinspection PyShadowingNames
-        def deprecate_edge_and_retry(current_id: int, next_node_id: int,
-                                     deprecated_path: Optional[set[tuple[int, int]]],
-                                     log_output: bool) -> bool:
-            if deprecated_path is None:
-                deprecated_path = set()
-            deprecated_path.add((current_id, next_node_id))
-            return self.goto(current=current_id, destination=destination_id, deprecated_path=deprecated_path,
-                             log_output=log_output)
-
-        # noinspection PyShadowingNames
         def tentative_resolve_id(priority: Optional[list[int]] = None) -> int:
-            resolved_id: int = self.resolve_current_interface_id()
+            """Resolve current interface ID with optional tentative click recovery."""
+            resolved_id: int = self.resolve_current_interface_id(priority)
             while resolved_id is None:
                 if tentative_click:
                     self.baas_thread.click(1238, 45)
@@ -781,64 +797,115 @@ class Navigator:
                     raise RuntimeError("cannot resolve current node during path execution")
             return resolved_id
 
-        # if not defined current interface, resolve it
+        # Initialize
+        if deprecated_path is None:
+            deprecated_path = set()
+        
+        # If not defined current interface, resolve it
         if current is None:
             current = tentative_resolve_id()
 
-        # convert current/destination to ids
+        # Convert current/destination to ids
         current_id = self.convert_to_id(current)
         destination_id = self.convert_to_id(destination)
 
-        if current_id == destination_id:
-            return True
-
-        if not path:
+        # Main iterative navigation loop
+        while current_id != destination_id:
+            # Build or rebuild path from current to destination
             if deprecated_path:
-                # if any path is deprecated, we use runtime bfs to lookup instead of static path
-                fallback_path = self.fallback_next_hops(current_id, destination_id, deprecated_path)
-                if fallback_path is None:
+                # Use runtime BFS if edges are deprecated
+                path = self.fallback_next_hops(current_id, destination_id, deprecated_path)
+                if path is None:
+                    # Check if current is a wildcard interface
+                    if current_id in self.metadata.wildcard_interfaces:
+                        wildcard_action = self._edge2action.get((current_id, "*"))
+                        if wildcard_action is not None:
+                            debug_print(f"[goto] No path available from {self.metadata.id2name[current_id]}, using wildcard action")
+                            try:
+                                wildcard_action(self.baas_thread)
+                                time.sleep(2)
+                                current_id = tentative_resolve_id()
+                                debug_print(f"[goto] After wildcard action, arrived at {self.metadata.id2name[current_id]}")
+                                # Clear deprecated_path and try again from new position
+                                deprecated_path = set()
+                                continue
+                            except Exception as e:
+                                debug_print(f"[goto] Wildcard action failed: {e}")
+                                raise RuntimeError("No available path found and wildcard action failed.")
                     raise RuntimeError("No available path found (after deprecating edges).")
-                return self.goto(current=current_id, destination=destination_id,
-                                 path=fallback_path,
-                                 deprecated_path=deprecated_path,
-                                 log_output=log_output)
-            return self.goto(current=current_id, destination=destination_id,
-                             path=build_static_path(current_id, destination_id),
-                             log_output=log_output)
+            else:
+                # Try static path first
+                path = build_static_path(current_id, destination_id)
+                if path is None:
+                    # No static path - check for wildcard interface
+                    if current_id in self.metadata.wildcard_interfaces:
+                        wildcard_action = self._edge2action.get((current_id, "*"))
+                        if wildcard_action is not None:
+                            debug_print(f"[goto] No static path from {self.metadata.id2name[current_id]}, using wildcard action")
+                            try:
+                                wildcard_action(self.baas_thread)
+                                time.sleep(2)
+                                current_id = tentative_resolve_id()
+                                debug_print(f"[goto] After wildcard action, arrived at {self.metadata.id2name[current_id]}")
+                                continue
+                            except Exception as e:
+                                debug_print(f"[goto] Wildcard action failed: {e}")
+                                raise RuntimeError(f"No path exists from {self.metadata.id2name[current_id]} to {self.metadata.id2name[destination_id]} and wildcard action failed.")
+                    raise RuntimeError(f"No path exists from {self.metadata.id2name[current_id]} to {self.metadata.id2name[destination_id]}")
 
-        debug_print(
-            f"Running path: {[self.metadata.id2name[nid] for nid in path]}, from {self.metadata.id2name[current_id]} to {self.metadata.id2name[destination_id]}")
-        debug_print(
-            f"Deprecated edges: {[(self.metadata.id2name[u], self.metadata.id2name[v]) for u, v in deprecated_path]}") if deprecated_path else None
-        for next_node_id in path:
-            action = self._edge2action.get((current_id, next_node_id))
-            if action is None:
-                debug_print(
-                    f"[goto][warning] no action defined from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}")
-                return deprecate_edge_and_retry(current_id, next_node_id, deprecated_path, log_output)
+            # Execute path
+            debug_print(f"Running path: {[self.metadata.id2name[nid] for nid in path]}, from {self.metadata.id2name[current_id]} to {self.metadata.id2name[destination_id]}")
+            if deprecated_path:
+                debug_print(f"Deprecated edges: {[(self.metadata.id2name[u], self.metadata.id2name[v]) for u, v in deprecated_path]}")
+            
+            for next_node_id in path:
+                # Get action for this hop
+                action = self._edge2action.get((current_id, next_node_id))
+                if action is None:
+                    debug_print(f"[goto][warning] no action defined from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}")
+                    # Deprecate this edge and retry
+                    deprecated_path.add((current_id, next_node_id))
+                    break  # Break to outer loop to rebuild path
 
-            for _ in range(max_retries):
-                try:
-                    action(self.baas_thread)
-                    time.sleep(2)
-                    resolved_id: int = self.resolve_current_interface_id([next_node_id, current_id])
-                    if resolved_id != current_id:
+                # Execute action with retries
+                action_succeeded = False
+                for _ in range(max_retries):
+                    try:
+                        action(self.baas_thread)
+                        time.sleep(2)
+                        resolved_id: int = self.resolve_current_interface_id([next_node_id, current_id])
+                        if resolved_id != current_id:
+                            action_succeeded = True
+                            break
+                    except Exception as e:
+                        debug_print(f"error executing action from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}: {e}")
                         break
-                except Exception as e:
-                    debug_print(
-                        f"error executing action from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}: {e}")
-                    return deprecate_edge_and_retry(current_id, next_node_id, deprecated_path, log_output)
 
-            resolved_id = tentative_resolve_id([next_node_id, current_id])
-            if resolved_id == current_id:
-                debug_print(
-                    f"warning: path blocked from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}, recalculating...")
-                return deprecate_edge_and_retry(current_id, next_node_id, deprecated_path, log_output)
-            elif resolved_id != next_node_id:
-                debug_print(f"warning: deviated from planned path,current:{resolved_id}, recalculating...")
-                return self.goto(current=current_id, destination=destination_id, deprecated_path=deprecated_path,
-                                 log_output=log_output)
-            current_id = resolved_id
+                if not action_succeeded:
+                    # Action failed - deprecate edge and retry
+                    deprecated_path.add((current_id, next_node_id))
+                    break  # Break to outer loop to rebuild path
+
+                # Verify we arrived at expected destination
+                resolved_id = tentative_resolve_id([next_node_id, current_id])
+                if resolved_id == current_id:
+                    debug_print(f"warning: path blocked from {self.metadata.id2name[current_id]} to {self.metadata.id2name[next_node_id]}, recalculating...")
+                    deprecated_path.add((current_id, next_node_id))
+                    break  # Break to outer loop to rebuild path
+                elif resolved_id != next_node_id:
+                    debug_print(f"warning: deviated from planned path at {self.metadata.id2name[current_id]}, arrived at {self.metadata.id2name[resolved_id]}, recalculating...")
+                    # Update current position and rebuild path
+                    current_id = resolved_id
+                    break  # Break to outer loop to rebuild path
+                
+                # Successfully moved to next node
+                current_id = resolved_id
+                
+                # If we reached destination, we're done
+                if current_id == destination_id:
+                    return True
+
+        # Reached destination
         return True
 
     def __init__(self, baas_thread: core.Baas_thread, interfaces: list[Interface],
