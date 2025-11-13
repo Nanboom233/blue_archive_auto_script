@@ -1,9 +1,10 @@
 import json
 import os
 
-import core.navigator.interfaces
 from core.Baas_thread import Baas_thread
 from core.config.config_set import ConfigSet
+from core.navigator import Navigator
+from core.navigator.interfaces import Interfaces
 from core.ocr import ocr
 from core.ocr.baas_ocr_client.server_installer import check_git
 from core.utils import Logger
@@ -164,10 +165,12 @@ if __name__ == '__main__':
     # bThread.solve("friend")
     # bThread.solve("joint_firing_drill")
     # bThread.solve("storage_check")
-    interfaces = core.navigator.interfaces.Interfaces.list_interfaces()
-    print(interfaces)
-    navigator_instance = core.navigator.navigator.Navigator(bThread, interfaces)
+    interfaces = Interfaces.list_interfaces()
+    prebuild_metadata: Navigator.FullMetadata = Navigator.compile_metadata(interfaces)
+    prebuild_metadata.to_base().save("prebuilt-runtime.metadata")
+
+    navigator_instance = Navigator(bThread, interfaces, Navigator.load_metadata("prebuilt-runtime.metadata"))
     print(navigator_instance.resolve_current_interface())
-    navigator_instance.goto(core.navigator.interfaces.Interfaces.I_group_page.name)
+    navigator_instance.goto(Interfaces.I_group_page.name)
     navigator_instance.goto("main_page")
     pass
