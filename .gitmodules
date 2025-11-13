@@ -1,0 +1,4 @@
+[submodule "develop_tools/NavigatorEditor"]
+	path = develop_tools/NavigatorEditor
+	url = git@github.com:Nanboom233/NavigatorEditor.git
+	branch = main
