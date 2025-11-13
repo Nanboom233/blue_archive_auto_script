@@ -194,7 +194,7 @@ def deal_with_pop_ups(self, pop_ups_rgb_reactions: dict = None, pop_ups_img_reac
             'main_page_net-work-unstable': (767, 501),
         },
         'JP': {
-
+            'main_page_net-work-unstable': (767, 501),
         },
         'Global': {
             'main_page_login-store': (883, 162),
