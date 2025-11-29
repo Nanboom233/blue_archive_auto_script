@@ -7,7 +7,10 @@ from array import array
 from collections import deque, defaultdict, Counter
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Callable, Optional, Final
+from typing import Callable, Optional, Final, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.Baas_thread import Baas_thread
 
 INF: Final[int] = 10 ** 9
 
@@ -17,10 +20,10 @@ class Navigator:
     class Interface:
         name: str
         description: str
-        features: list[Callable[[core.Baas_thread], bool]]
+        features: list[Callable[[Baas_thread], bool]]
         actions: dict[str, Optional[Callable]]
 
-        def validate(self, baas_thread: core.Baas_thread) -> bool:
+        def validate(self, baas_thread: Baas_thread) -> bool:
             for feature in self.features:
                 if not feature(baas_thread):
                     return False
@@ -584,10 +587,10 @@ class Navigator:
         else:
             raise ValueError(f"unknown metadata kind: {kind}")
 
-    baas_thread: core.Baas_thread
+    baas_thread: Baas_thread
     metadata: BaseMetadata
-    _edge2action: dict[tuple[int, int | str], Callable[[core.Baas_thread], None]]  # Allow int or "*" for wildcard
-    _validators: list[None | Callable[[core.Baas_thread], bool]]
+    _edge2action: dict[tuple[int, int | str], Callable[[Baas_thread], None]]  # Allow int or "*" for wildcard
+    _validators: list[None | Callable[[Baas_thread], bool]]
 
     # maintain a scan order to optimize resolve_current_interface (move-to-front)
     _scan_order: list[int]
@@ -666,7 +669,7 @@ class Navigator:
                         self._edge2action[(interface_id, destination_id)] = act
 
     def update_single_action(self, interface: int | str, destination: int | str,
-                             new_action: Optional[Callable[[core.Baas_thread], None]]) -> None:
+                             new_action: Optional[Callable[[Baas_thread], None]]) -> None:
         interface_id = self.convert_to_id(interface)
         destination_id = self.convert_to_id(destination)
         if new_action is not None:
@@ -675,7 +678,7 @@ class Navigator:
             self._edge2action.pop((interface_id, destination_id), None)
 
     def update_single_features(self, interface: int | str,
-                               new_features: list[Callable[[core.Baas_thread], bool]]) -> None:
+                               new_features: list[Callable[[Baas_thread], bool]]) -> None:
         interface_id = self.convert_to_id(interface)
         combined_validator = lambda baas_thread: all(feature(baas_thread) for feature in new_features)
         self._validators[interface_id] = combined_validator
@@ -895,7 +898,7 @@ class Navigator:
         # Reached destination
         return True
 
-    def __init__(self, baas_thread: core.Baas_thread, interfaces: list[Interface],
+    def __init__(self, baas_thread: Baas_thread, interfaces: list[Interface],
                  metadata: Optional[BaseMetadata] = None):
         self.baas_thread = baas_thread
         self.metadata = metadata if metadata else Navigator.compile_metadata(interfaces, cached_metadata=None)

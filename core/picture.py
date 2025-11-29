@@ -1,14 +1,18 @@
 import time
 import typing
+from typing import TYPE_CHECKING
 
 from core import color, image
 from core.color import match_rgb_feature
 from core.exception import RequestHumanTakeOver, FunctionCallTimeout, PackageIncorrect
 from module.main_story import set_acc_and_auto
 
+if TYPE_CHECKING:
+    from core.Baas_thread import Baas_thread
+
 
 def co_detect(
-    self: core.Baas_thread,
+    self: Baas_thread,
     rgb_ends: typing.Union[list[str], str] = None,
     rgb_reactions: dict = None,
     img_ends: typing.Union[list, str, tuple] = None,
@@ -231,7 +235,7 @@ def choose_buff(self):
 
 
 def match_img_feature(
-    self: core.Baas_thread,
+    self: Baas_thread,
     img_feature: typing.Union[tuple, str],
     threshold: float = 0.8,
     rgb_diff: int = 20
@@ -248,7 +252,7 @@ def match_img_feature(
     return image.compare_image(self, image_name, threshold, rgb_diff)
 
 
-def match_any_img_feature(self: core.Baas_thread, featureList: list[typing.Union[tuple, str]]) -> bool:
+def match_any_img_feature(self: Baas_thread, featureList: list[typing.Union[tuple, str]]) -> bool:
     for img_feature in featureList:
         if match_img_feature(self, img_feature):
             return True

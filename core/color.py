@@ -1,10 +1,14 @@
 import time
 import typing
+from typing import TYPE_CHECKING
 
 import numpy as np
 
+if TYPE_CHECKING:
+    from core.Baas_thread import Baas_thread
 
-def wait_loading(self: core.Baas_thread) -> None:
+
+def wait_loading(self: Baas_thread) -> None:
     startTime = time.time()
     while (self.flag_run and
            match_rgb_feature(self, "loadingNotWhite") and match_rgb_feature(self, "loadingWhite")):
@@ -58,7 +62,7 @@ def match_rgb_feature(self, featureName):
     return True
 
 
-def match_any_rgb_feature(self: core.Baas_thread, featureList: list[typing.Union[tuple, str]]) -> bool:
+def match_any_rgb_feature(self: Baas_thread, featureList: list[typing.Union[tuple, str]]) -> bool:
     for rgb_feature in featureList:
         if match_rgb_feature(self, rgb_feature):
             return True
