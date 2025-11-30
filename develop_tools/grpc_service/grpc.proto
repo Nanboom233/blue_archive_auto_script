@@ -1,0 +1,33 @@
+syntax = "proto3";
+package navigator_proto;
+
+option csharp_namespace = "NavigatorEditor.Proto";
+
+import "google/protobuf/empty.proto";
+
+message CommandRequest{
+  string command = 1;
+}
+
+message CommandResponse {
+  bool success = 1;
+  string message = 2;
+  int64 timestamp = 3; // milliseconds since epoch
+}
+
+message HeartbeatPacket {
+  int64 timestamp = 1; // milliseconds since epoch
+}
+
+// message for log streaming
+message LogEntry {
+  int64 timestamp = 1; // milliseconds since epoch
+  string message = 2;  // plain text message
+}
+
+service GrpcService {
+  rpc command(CommandRequest) returns (CommandResponse);
+  rpc heartbeat(google.protobuf.Empty) returns (HeartbeatPacket);
+  // Client subscribes to receive log stream from server
+  rpc subscribe_logs(google.protobuf.Empty) returns (stream LogEntry);
+}

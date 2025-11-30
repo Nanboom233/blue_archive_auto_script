@@ -3,11 +3,10 @@ import os
 
 from core.Baas_thread import Baas_thread
 from core.config.config_set import ConfigSet
-from core.navigator import Navigator
-from core.navigator.interfaces import Interfaces
 from core.ocr import ocr
 from core.ocr.baas_ocr_client.server_installer import check_git
 from core.utils import Logger
+from develop_tools.grpc_service import grpc_server
 
 
 class Main:
@@ -120,7 +119,10 @@ if __name__ == '__main__':
     ocr_needed = ["en-us"]
     INSTANCE = Main(ocr_needed=ocr_needed)
     config = ConfigSet(config_dir="default_config")
-    bThread = Baas_thread(config, None, None, None)
+    from develop_tools.grpc_service.grpc_server import GrpcServicer
+
+    emitter = GrpcServicer.LoggerSignalEmitter(output_mode=GrpcServicer.LoggerSignalEmitter.OutputMode.BOTH)
+    bThread = Baas_thread(config, emitter, None, None)
     bThread.set_ocr(INSTANCE.ocr)
     bThread.init_all_data()
     # tt.update_screenshot_array()
@@ -165,12 +167,14 @@ if __name__ == '__main__':
     # bThread.solve("friend")
     # bThread.solve("joint_firing_drill")
     # bThread.solve("storage_check")
-    interfaces = Interfaces.list_interfaces()
-    prebuild_metadata: Navigator.FullMetadata = Navigator.compile_metadata(interfaces)
-    prebuild_metadata.to_base().save("prebuilt-runtime.metadata")
+    # interfaces = Interfaces.list_interfaces()
+    # prebuild_metadata: Navigator.FullMetadata = Navigator.compile_metadata(interfaces)
+    # prebuild_metadata.to_base().save("prebuilt-runtime.metadata")
+    #
+    # navigator_instance = Navigator(bThread, interfaces, Navigator.load_metadata("prebuilt-runtime.metadata"))
+    # print(navigator_instance.resolve_current_interface())
+    # navigator_instance.goto(Interfaces.I_group_page.name)
+    # navigator_instance.goto("main_page")
+    grpc_server.start_server(bThread, logger_emitter=emitter)
 
-    navigator_instance = Navigator(bThread, interfaces, Navigator.load_metadata("prebuilt-runtime.metadata"))
-    print(navigator_instance.resolve_current_interface())
-    navigator_instance.goto(Interfaces.I_group_page.name)
-    navigator_instance.goto("main_page")
     pass
