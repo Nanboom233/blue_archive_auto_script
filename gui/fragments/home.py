@@ -2,6 +2,7 @@ import html
 import json
 import sys
 import time
+import traceback
 from datetime import datetime
 from hashlib import md5
 from json import JSONDecodeError
@@ -190,7 +191,6 @@ class HomeFragment(QFrame):
                                     ''')
             self.logger_box.append(adding)
         except Exception as e:
-            import traceback
             print(f"Error when printing to log box: {e}")
             traceback.print_exc()
 
