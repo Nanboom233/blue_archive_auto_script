@@ -1,3 +1,4 @@
+import html
 import json
 import sys
 import time
@@ -161,24 +162,37 @@ class HomeFragment(QFrame):
 
     @pyqtSlot(int, str)
     def on_log_received(self, level: int, message: str) -> None:
+        """
+         Slot handler for receiving log messages from the logger signal.
+
+         Formats log messages with HTML styling including colored status indicators,
+         timestamps, and appropriate color coding before displaying in the logger box.
+
+         Args:
+             level: Log level (1=INFO, 2=WARNING, 3=ERROR, 4=CRITICAL)
+             message: The log message to display
+         """
         try:
-            # Status Text: INFO, WARNING, ERROR, CRITICAL
-            status = ['&nbsp;&nbsp;&nbsp;&nbsp;INFO', '&nbsp;WARNING', '&nbsp;&nbsp;&nbsp;ERROR', 'CRITICAL']
-            # Status Color: Blue, Orange, Red, Purple
-            statusColor = ['#2d8cf0', '#f90', '#ed3f14', '#3e0480']
+            # Level Text: INFO, WARNING, ERROR, CRITICAL
+            levels_str = ['&nbsp;&nbsp;&nbsp;&nbsp;INFO', '&nbsp;WARNING', '&nbsp;&nbsp;&nbsp;ERROR', 'CRITICAL']
+            # Level Color: Blue, Orange, Red, Purple
+            levels_color = ['#2d8cf0', '#ff9900', '#ed3f14', '#3e0480']
             # Status HTML: <b style="color:$color">status</b>
-            statusHtml = [
+            status_html = [
                 f'<b style="color:{_color};">{status}</b>'
-                for _color, status in zip(statusColor, status)]
+                for _color, status in zip(levels_color, levels_str)]
+            message = html.escape(message)  # additional escape to prevent XSS injection
             message = message.replace('\n', '<br>').replace(' ', '&nbsp;')
             adding = (f'''
-                                <div style="font-family: Consolas, monospace;color:{statusColor[level - 1]};">
-                                    {statusHtml[level - 1]} | {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | {message}
+                                <div style="font-family: Consolas, monospace;color:{levels_color[level - 1]};">
+                                    {status_html[level - 1]} | {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | {message}
                                 </div>
                                     ''')
             self.logger_box.append(adding)
         except Exception as e:
+            import traceback
             print(f"Error when printing to log box: {e}")
+            traceback.print_exc()
 
     def _change_hotkey(self, key: str):
         """Handles the logic for changing a hotkey via the dialog."""
