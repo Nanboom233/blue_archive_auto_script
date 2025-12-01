@@ -70,7 +70,8 @@ class Logger:
         # If raw_print is True, output log to logger box
         if raw_print:
             self.logs += message
-            self.logger_signal.emit(level, message)
+            if self.logger_signal:
+                self.logger_signal.emit(level, message)
             return
 
         while len(logging.root.handlers) > 0:
@@ -81,7 +82,7 @@ class Logger:
         # else output log to console
         levels_color = ["#2d8cf0", "#ff9900", "#ed3f14", "#3e0480"]
         if self.logger_signal is not None:
-            self.logs += f"{levels_str[level - 1]} |{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}| {message}"
+            self.logs += f"{levels_str[level - 1]} | {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | {message}"
             self.logger_signal.emit(level, message)
         else:
             console.print(f'[{levels_color[level - 1]}]'
