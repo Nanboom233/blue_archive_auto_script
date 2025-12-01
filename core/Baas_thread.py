@@ -62,7 +62,8 @@ func_dict = {
     'friend': module.friend.implement,
     'joint_firing_drill': module.joint_firing_drill.implement,
     'pass': module.collect_pass_reward.implement,
-    'collect_daily_free_power': module.collect_daily_free_power.implement
+    'collect_daily_free_power': module.collect_daily_free_power.implement,
+    'storage_check': module.storage_check.implement
 }
 
 
@@ -127,7 +128,7 @@ class Baas_thread:
     def click(self, x, y, count=1, rate=0, duration=0, wait_over=False):
         if not self.flag_run:
             raise RequestHumanTakeOver
-        if self.screenshot.screenshot_method == "nemu":
+        if self.control.control_method == "nemu":
             self.click_thread(x, y, count, rate, duration)
             return
         click_ = threading.Thread(target=self.click_thread, args=(x, y, count, rate, duration))
