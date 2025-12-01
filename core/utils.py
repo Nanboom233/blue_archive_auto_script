@@ -6,10 +6,8 @@ from typing import Union
 
 from rich.console import Console
 from rich.markup import escape
-from rich.traceback import install
 
 console = Console()
-install(show_locals=True)
 
 
 def delay(wait=1):
@@ -53,6 +51,11 @@ class Logger:
         # logger signal is used to output log to logger box or other output
         self.logs = ""
         self.logger_signal = logger_signal
+        if not self.logger_signal:
+            # if the logger signal is not configured, we use rich traceback then
+            # to better display error messages in console
+            from rich.traceback import install
+            install(show_locals=True)
         self.logger = logging.getLogger("BAAS_Logger")
         formatter = logging.Formatter("%(levelname)8s |%(asctime)20s | %(message)s ")
         handler1 = logging.StreamHandler(stream=sys.stdout)
@@ -68,6 +71,9 @@ class Logger:
         :return: None
         """
         # If raw_print is True, output log to logger box
+        if level < 1 or level > 4:
+            raise ValueError("Invalid log level")
+
         if raw_print:
             self.logs += message
             if self.logger_signal:
