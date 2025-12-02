@@ -4,6 +4,7 @@ import threading
 from datetime import datetime, timedelta, timezone
 from typing import Union
 
+from deprecation import deprecated
 from rich.console import Console
 from rich.markup import escape
 
@@ -128,7 +129,7 @@ class Logger:
         """
         self.__out__(message, 4)
 
-    @deprecation
+    @deprecated("line() method is deprecated, and will be removed in future versions.")
     def line(self) -> None:
         """
         Output line
