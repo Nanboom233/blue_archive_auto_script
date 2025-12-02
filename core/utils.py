@@ -128,6 +128,7 @@ class Logger:
         """
         self.__out__(message, 4)
 
+    @deprecation
     def line(self) -> None:
         """
         Output line
