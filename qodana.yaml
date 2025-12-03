@@ -6,6 +6,7 @@ exclude:
   - name: All
     paths:
       - gui
+      - develop_tools
 bootstrap: |
   pip install -r requirements-linux.txt
   pip install -r deploy/installer/requirements.installer.txt

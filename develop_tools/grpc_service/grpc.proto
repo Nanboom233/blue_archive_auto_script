@@ -1,0 +1,48 @@
+syntax = "proto3";
+package navigator_proto;
+
+option csharp_namespace = "NavigatorEditor.Proto";
+
+import "google/protobuf/empty.proto";
+
+message CommandRequest{
+  string command = 1;
+}
+
+message CommandResponse {
+  bool success = 1;
+  string message = 2;
+  int64 timestamp = 3; // milliseconds since epoch
+}
+
+message HeartbeatPacket {
+  int64 timestamp = 1; // milliseconds since epoch
+}
+
+// message for log streaming
+message LogEntry {
+  int64 timestamp = 1; // milliseconds since epoch
+  int32 level = 2;   // log level (e.g., INFO=1, WARN=2, ERROR=3, CRITICAL=4)
+  string message = 3;  // plain text message
+}
+
+message InterfaceInfo{
+  string var_name = 1;
+  string id = 2;
+  string description = 3;
+  string features = 4; // represent using json string
+  string actions = 5; // represent using json string
+}
+
+message InterfacesCollection {
+  repeated InterfaceInfo interfaces = 1;
+}
+
+service GrpcService {
+  rpc Command(CommandRequest) returns (CommandResponse);
+  rpc Heartbeat(google.protobuf.Empty) returns (HeartbeatPacket);
+  // Client subscribes to receive log stream from server
+  rpc SubscribeLogs(google.protobuf.Empty) returns (stream LogEntry);
+  rpc GetInterfaces(google.protobuf.Empty) returns (InterfacesCollection);
+  rpc WriteInterfaces(InterfacesCollection) returns (CommandResponse);
+}

@@ -1,14 +1,18 @@
 import json
 import time
+from typing import TYPE_CHECKING
 
-from core import image, picture, Baas_thread, color
+from core import image, picture, color
 from core.image import swipe_search_target_str
 from module import main_story
+
+if TYPE_CHECKING:
+    from core.Baas_thread import Baas_thread
 
 
 # Functions related to navigation or obtaining map data
 # 与导航或获取地图数据相关的函数
-def to_region(self, region: int, isNormal: bool) -> bool:
+def to_region(self: Baas_thread, region: int, isNormal: bool) -> bool:
     ocr_area = [122, 178, 163, 208]
     curRegion = self.ocr.recognize_int(
         baas=self,
@@ -138,7 +142,7 @@ def get_challenge_state(self, challenge_count=1) -> list[int]:
     # to challenge menu
     img_ends = 'normal_task_challenge-menu'
     img_possibles = {
-        "normal_task_challenge-button": (536,302),
+        "normal_task_challenge-button": (536, 302),
         "activity_quest-challenge-button": (319, 270)
     }
     picture.co_detect(self, None, None, img_ends, img_possibles, True)

@@ -1,9 +1,11 @@
 import time
 import typing
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from core import Baas_thread
+if TYPE_CHECKING:
+    from core.Baas_thread import Baas_thread
 
 
 def wait_loading(self: Baas_thread) -> None:
