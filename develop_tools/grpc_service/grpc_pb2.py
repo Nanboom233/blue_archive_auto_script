@@ -9,7 +9,6 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
-
 _runtime_version.ValidateProtobufRuntimeVersion(
     _runtime_version.Domain.PUBLIC,
     6,
@@ -23,7 +22,7 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\ngrpc.proto\x12\x0fnavigator_proto\x1a\x1bgoogle/protobuf/empty.proto\"!\n\x0e\x43ommandRequest\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\"F\n\x0f\x43ommandResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x11\n\ttimestamp\x18\x03 \x01(\x03\"$\n\x0fHeartbeatPacket\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\".\n\x08LogEntry\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\x12\x0f\n\x07message\x18\x02 \x01(\t2\xe9\x01\n\x0bGrpcService\x12L\n\x07\x63ommand\x12\x1f.navigator_proto.CommandRequest\x1a .navigator_proto.CommandResponse\x12\x45\n\theartbeat\x12\x16.google.protobuf.Empty\x1a .navigator_proto.HeartbeatPacket\x12\x45\n\x0esubscribe_logs\x12\x16.google.protobuf.Empty\x1a\x19.navigator_proto.LogEntry0\x01\x42\x18\xaa\x02\x15NavigatorEditor.Protob\x06proto3')
+    b'\n\ngrpc.proto\x12\x0fnavigator_proto\x1a\x1bgoogle/protobuf/empty.proto\"!\n\x0e\x43ommandRequest\x12\x0f\n\x07\x63ommand\x18\x01 \x01(\t\"F\n\x0f\x43ommandResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x11\n\ttimestamp\x18\x03 \x01(\x03\"$\n\x0fHeartbeatPacket\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\"=\n\x08LogEntry\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\x12\r\n\x05level\x18\x02 \x01(\x05\x12\x0f\n\x07message\x18\x03 \x01(\t\"e\n\rInterfaceInfo\x12\x10\n\x08var_name\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x03 \x01(\t\x12\x10\n\x08\x66\x65\x61tures\x18\x04 \x01(\t\x12\x0f\n\x07\x61\x63tions\x18\x05 \x01(\t\"J\n\x14InterfacesCollection\x12\x32\n\ninterfaces\x18\x01 \x03(\x0b\x32\x1e.navigator_proto.InterfaceInfo2\x94\x03\n\x0bGrpcService\x12L\n\x07\x43ommand\x12\x1f.navigator_proto.CommandRequest\x1a .navigator_proto.CommandResponse\x12\x45\n\tHeartbeat\x12\x16.google.protobuf.Empty\x1a .navigator_proto.HeartbeatPacket\x12\x44\n\rSubscribeLogs\x12\x16.google.protobuf.Empty\x1a\x19.navigator_proto.LogEntry0\x01\x12N\n\rGetInterfaces\x12\x16.google.protobuf.Empty\x1a%.navigator_proto.InterfacesCollection\x12Z\n\x0fWriteInterfaces\x12%.navigator_proto.InterfacesCollection\x1a .navigator_proto.CommandResponseB\x18\xaa\x02\x15NavigatorEditor.Protob\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,7 +37,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
     _globals['_HEARTBEATPACKET']._serialized_start = 167
     _globals['_HEARTBEATPACKET']._serialized_end = 203
     _globals['_LOGENTRY']._serialized_start = 205
-    _globals['_LOGENTRY']._serialized_end = 251
-    _globals['_GRPCSERVICE']._serialized_start = 254
-    _globals['_GRPCSERVICE']._serialized_end = 487
+    _globals['_LOGENTRY']._serialized_end = 266
+    _globals['_INTERFACEINFO']._serialized_start = 268
+    _globals['_INTERFACEINFO']._serialized_end = 369
+    _globals['_INTERFACESCOLLECTION']._serialized_start = 371
+    _globals['_INTERFACESCOLLECTION']._serialized_end = 445
+    _globals['_GRPCSERVICE']._serialized_start = 448
+    _globals['_GRPCSERVICE']._serialized_end = 852
 # @@protoc_insertion_point(module_scope)

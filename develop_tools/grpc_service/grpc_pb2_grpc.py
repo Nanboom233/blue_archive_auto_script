@@ -11,7 +11,6 @@ _version_not_supported = False
 
 try:
     from grpc._utilities import first_version_is_lower
-
     _version_not_supported = first_version_is_lower(GRPC_VERSION, GRPC_GENERATED_VERSION)
 except ImportError:
     _version_not_supported = True
@@ -35,41 +34,63 @@ class GrpcServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.command = channel.unary_unary(
-            '/navigator_proto.GrpcService/command',
+        self.Command = channel.unary_unary(
+            '/navigator_proto.GrpcService/Command',
             request_serializer=grpc__pb2.CommandRequest.SerializeToString,
             response_deserializer=grpc__pb2.CommandResponse.FromString,
             _registered_method=True)
-        self.heartbeat = channel.unary_unary(
-            '/navigator_proto.GrpcService/heartbeat',
+        self.Heartbeat = channel.unary_unary(
+            '/navigator_proto.GrpcService/Heartbeat',
             request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             response_deserializer=grpc__pb2.HeartbeatPacket.FromString,
             _registered_method=True)
-        self.subscribe_logs = channel.unary_stream(
-            '/navigator_proto.GrpcService/subscribe_logs',
+        self.SubscribeLogs = channel.unary_stream(
+            '/navigator_proto.GrpcService/SubscribeLogs',
             request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             response_deserializer=grpc__pb2.LogEntry.FromString,
+            _registered_method=True)
+        self.GetInterfaces = channel.unary_unary(
+            '/navigator_proto.GrpcService/GetInterfaces',
+            request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            response_deserializer=grpc__pb2.InterfacesCollection.FromString,
+            _registered_method=True)
+        self.WriteInterfaces = channel.unary_unary(
+            '/navigator_proto.GrpcService/WriteInterfaces',
+            request_serializer=grpc__pb2.InterfacesCollection.SerializeToString,
+            response_deserializer=grpc__pb2.CommandResponse.FromString,
             _registered_method=True)
 
 
 class GrpcServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def command(self, request, context):
+    def Command(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def heartbeat(self, request, context):
+    def Heartbeat(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def subscribe_logs(self, request, context):
+    def SubscribeLogs(self, request, context):
         """Client subscribes to receive log stream from server
         """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetInterfaces(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def WriteInterfaces(self, request, context):
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -77,20 +98,30 @@ class GrpcServiceServicer(object):
 
 def add_GrpcServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-        'command': grpc.unary_unary_rpc_method_handler(
-            servicer.command,
+        'Command': grpc.unary_unary_rpc_method_handler(
+            servicer.Command,
             request_deserializer=grpc__pb2.CommandRequest.FromString,
             response_serializer=grpc__pb2.CommandResponse.SerializeToString,
         ),
-        'heartbeat': grpc.unary_unary_rpc_method_handler(
-            servicer.heartbeat,
+        'Heartbeat': grpc.unary_unary_rpc_method_handler(
+            servicer.Heartbeat,
             request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             response_serializer=grpc__pb2.HeartbeatPacket.SerializeToString,
         ),
-        'subscribe_logs': grpc.unary_stream_rpc_method_handler(
-            servicer.subscribe_logs,
+        'SubscribeLogs': grpc.unary_stream_rpc_method_handler(
+            servicer.SubscribeLogs,
             request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             response_serializer=grpc__pb2.LogEntry.SerializeToString,
+        ),
+        'GetInterfaces': grpc.unary_unary_rpc_method_handler(
+            servicer.GetInterfaces,
+            request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            response_serializer=grpc__pb2.InterfacesCollection.SerializeToString,
+        ),
+        'WriteInterfaces': grpc.unary_unary_rpc_method_handler(
+            servicer.WriteInterfaces,
+            request_deserializer=grpc__pb2.InterfacesCollection.FromString,
+            response_serializer=grpc__pb2.CommandResponse.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -104,7 +135,7 @@ class GrpcService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def command(request,
+    def Command(request,
                 target,
                 options=(),
                 channel_credentials=None,
@@ -117,7 +148,7 @@ class GrpcService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/navigator_proto.GrpcService/command',
+            '/navigator_proto.GrpcService/Command',
             grpc__pb2.CommandRequest.SerializeToString,
             grpc__pb2.CommandResponse.FromString,
             options,
@@ -131,7 +162,7 @@ class GrpcService(object):
             _registered_method=True)
 
     @staticmethod
-    def heartbeat(request,
+    def Heartbeat(request,
                   target,
                   options=(),
                   channel_credentials=None,
@@ -144,7 +175,7 @@ class GrpcService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/navigator_proto.GrpcService/heartbeat',
+            '/navigator_proto.GrpcService/Heartbeat',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             grpc__pb2.HeartbeatPacket.FromString,
             options,
@@ -158,22 +189,76 @@ class GrpcService(object):
             _registered_method=True)
 
     @staticmethod
-    def subscribe_logs(request,
-                       target,
-                       options=(),
-                       channel_credentials=None,
-                       call_credentials=None,
-                       insecure=False,
-                       compression=None,
-                       wait_for_ready=None,
-                       timeout=None,
-                       metadata=None):
+    def SubscribeLogs(request,
+                      target,
+                      options=(),
+                      channel_credentials=None,
+                      call_credentials=None,
+                      insecure=False,
+                      compression=None,
+                      wait_for_ready=None,
+                      timeout=None,
+                      metadata=None):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/navigator_proto.GrpcService/subscribe_logs',
+            '/navigator_proto.GrpcService/SubscribeLogs',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             grpc__pb2.LogEntry.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetInterfaces(request,
+                      target,
+                      options=(),
+                      channel_credentials=None,
+                      call_credentials=None,
+                      insecure=False,
+                      compression=None,
+                      wait_for_ready=None,
+                      timeout=None,
+                      metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/navigator_proto.GrpcService/GetInterfaces',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            grpc__pb2.InterfacesCollection.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def WriteInterfaces(request,
+                        target,
+                        options=(),
+                        channel_credentials=None,
+                        call_credentials=None,
+                        insecure=False,
+                        compression=None,
+                        wait_for_ready=None,
+                        timeout=None,
+                        metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/navigator_proto.GrpcService/WriteInterfaces',
+            grpc__pb2.InterfacesCollection.SerializeToString,
+            grpc__pb2.CommandResponse.FromString,
             options,
             channel_credentials,
             insecure,

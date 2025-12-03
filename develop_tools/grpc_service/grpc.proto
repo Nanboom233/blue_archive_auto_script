@@ -22,12 +22,27 @@ message HeartbeatPacket {
 // message for log streaming
 message LogEntry {
   int64 timestamp = 1; // milliseconds since epoch
-  string message = 2;  // plain text message
+  int32 level = 2;   // log level (e.g., INFO=1, WARN=2, ERROR=3, CRITICAL=4)
+  string message = 3;  // plain text message
+}
+
+message InterfaceInfo{
+  string var_name = 1;
+  string id = 2;
+  string description = 3;
+  string features = 4; // represent using json string
+  string actions = 5; // represent using json string
+}
+
+message InterfacesCollection {
+  repeated InterfaceInfo interfaces = 1;
 }
 
 service GrpcService {
-  rpc command(CommandRequest) returns (CommandResponse);
-  rpc heartbeat(google.protobuf.Empty) returns (HeartbeatPacket);
+  rpc Command(CommandRequest) returns (CommandResponse);
+  rpc Heartbeat(google.protobuf.Empty) returns (HeartbeatPacket);
   // Client subscribes to receive log stream from server
-  rpc subscribe_logs(google.protobuf.Empty) returns (stream LogEntry);
+  rpc SubscribeLogs(google.protobuf.Empty) returns (stream LogEntry);
+  rpc GetInterfaces(google.protobuf.Empty) returns (InterfacesCollection);
+  rpc WriteInterfaces(InterfacesCollection) returns (CommandResponse);
 }
